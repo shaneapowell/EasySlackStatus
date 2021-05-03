@@ -15,7 +15,7 @@ typedef enum
 
 typedef struct
 {
-    String status;
+    String title;
     String icon;
     int timeout;
 } SlackStatus;

@@ -65,13 +65,18 @@
 #define OLED_SCREEN_WIDTH       128 
 #define OLED_SCREEN_HEIGHT      64 
 
+
 /* Text Size 1 */
+#define STATUS_BAR_HEIGHT 10
 #define CURSOR_STATUS_BAR 0
 
 /* Text Size 2 */
+#define LINE_HEIGHT  18
+#define LINE_COUNT   3
 #define CURSOR_LINE1 10
 #define CURSOR_LINE2 28
 #define CURSOR_LINE3 46  // 64 - 18
+
 
 
 
@@ -82,8 +87,14 @@ private:
     //Adafruit_SSD1306 mDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, -1);
     Adafruit_I2C_SH1106 _display;
     //State *_state;
+
     bool _isDirty = false;
-    SlackStatus _currentStatus = ALL_SLACK_STATUS[0];
+
+    int _currentStatusIndex = 0;
+
+    int _mainScreenHighlightedIndex = 0;  /* Which state is currently "highlghted" */
+    int _mainScreenScrollBy = 0;          /* The rotary scroll by */
+    
     String _ipAddr = "0.0.0.0";
 
     /*************************************************
@@ -101,8 +112,11 @@ private:
 
         _display.setTextSize(1);
         _display.setTextColor(WHITE); 
-        _display.setCursor(_display.width() / 2, CURSOR_STATUS_BAR);
-        _display.print(_ipAddr);
+        int x = ALL_SLACK_STATUS[_currentStatusIndex].title.length();
+        x /= 2;
+        x *= (6+2);
+        _display.setCursor(x, CURSOR_STATUS_BAR);
+        _display.print(ALL_SLACK_STATUS[_currentStatusIndex].title);
 
         renderMainScreen();
 
@@ -147,14 +161,32 @@ private:
     /***********************************************/
     void renderMainScreen()
     {
-        _display.setTextSize(2);
-        _display.setCursor(0, CURSOR_LINE1);
-        _display.print(ALL_SLACK_STATUS[0].status);
-        _display.setCursor(0, CURSOR_LINE2);
-        _display.print(ALL_SLACK_STATUS[1].status);
-        _display.setCursor(0, CURSOR_LINE3);
-        _display.print(ALL_SLACK_STATUS[2].status);
+        int index = _mainScreenScrollBy;
+        renderStatusLine(CURSOR_LINE1, ALL_SLACK_STATUS[index],   index == _mainScreenHighlightedIndex);
+        renderStatusLine(CURSOR_LINE2, ALL_SLACK_STATUS[index+1], index+1 == _mainScreenHighlightedIndex);
+        renderStatusLine(CURSOR_LINE3, ALL_SLACK_STATUS[index+2], index+2 == _mainScreenHighlightedIndex);
     }
+
+
+    /***********************************************/
+    void renderStatusLine(int cursorLine, SlackStatus status, bool active)
+    {
+        _display.setTextSize(2);
+
+        if (active)
+        {
+            _display.fillRect(0, cursorLine-1, _display.width(), LINE_HEIGHT, WHITE);
+            _display.setTextColor(BLACK);
+        }
+        else
+        {
+            _display.setTextColor(WHITE);
+        }
+
+        _display.setCursor(1, cursorLine);
+        _display.print(status.title);
+    }
+
 
 public:
     
@@ -213,6 +245,22 @@ public:
     /***********************************************/
     void onRotaryInput(boolean increase) 
     {
+        /* Move Highlight Bar */
+        _mainScreenHighlightedIndex += (increase ? 1 : -1);
+        _mainScreenHighlightedIndex = max(_mainScreenHighlightedIndex, 0);
+        _mainScreenHighlightedIndex = min(_mainScreenHighlightedIndex, SLACK_STATUS_COUNT-1);
+
+        /* Calculate any change in the scroll by */
+        if (_mainScreenHighlightedIndex < _mainScreenScrollBy)
+        {
+            /* Highlight is above the current scroll by bring it back down */
+            _mainScreenScrollBy = _mainScreenHighlightedIndex;
+        } 
+        else if (_mainScreenHighlightedIndex >= _mainScreenScrollBy + LINE_COUNT)
+        {
+            _mainScreenScrollBy = _mainScreenHighlightedIndex - LINE_COUNT + 1;
+        }
+
         _isDirty = true;
     }
 
