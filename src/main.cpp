@@ -68,13 +68,12 @@
 #include <Wire.h>
 #include "lcd/Adafruit_I2C_SH1106.h"
 
-#include "state.h"
-#include "lcd.hpp"
+//#include "state.h"
+#include "display.hpp"
 #include "creds.h"
 
 
 #define PIN_SETTINGS_BUTTON     D3
-
 #define PIN_ROTARY_CLK          D6
 #define PIN_ROTARY_DT           D7
 #define PIN_ROTARY_BUTTON       D5
@@ -91,25 +90,24 @@ ESPRotary _rotary = ESPRotary(PIN_ROTARY_CLK, PIN_ROTARY_DT, ROTARY_STEPS_PER_CL
 Button2 _rotaryButton = Button2(PIN_ROTARY_BUTTON);
 Button2 _settingsButton = Button2(PIN_SETTINGS_BUTTON);
 
-State _state;
-LCD _lcd(&_state);
+LCD Display;
 
 /***********************************************/ 
 void onWifiConnected(const WiFiEventStationModeConnected& event){
 	Serial.print(F("Wifi Connected to AP: ")); Serial.println(event.ssid);
-	_lcd.onWifiConnected(event);
+	Display.onWifiConnected();
 }
 
 /***********************************************/  
 void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
-	Serial.println(F("Wifi On Disconnected."));
-	_lcd.onWifiDiconnected(event);
+	Serial.println(F("Wifi Disconnected."));
+	Display.onWifiDiconnected();
 }
 
 /***********************************************/ 
 void onWifiGotIP(const WiFiEventStationModeGotIP& event){
 	Serial.print(F("Wifi Got IP: ")); Serial.println(event.ip);
-	_lcd.onWifiGotIp(event);
+	Display.onWifiGotIp(event.ip.toString());
 }
 
 /***********************************************
@@ -119,7 +117,7 @@ void onRotate(ESPRotary& r) {
     int position = r.getPosition();
     Serial.println(position);
     Serial.println(r.directionToString(r.getDirection()));
-    _lcd.onRotaryInput(r.getDirection() == RE_LEFT);
+    Display.onRotaryInput(r.getDirection() == RE_RIGHT);
 //    showNewStatus(position);    
 }
 
@@ -136,13 +134,9 @@ void onRotate(ESPRotary& r) {
  ***********************************************/
 void onRotaryClick(Button2& btn) 
 {
-    Serial.println(F("Rotary Click!"));
-    int position = _rotary.getPosition();
-    SlackProfile profile;
-
     //profile = mSlack.setCustomStatus(status[position][0], status[position][1]);
     //displayProfile(profile);
-    _lcd.onRotaryClick();
+    Display.onRotaryClick();
 }
 
 /***********************************************
@@ -151,7 +145,7 @@ void onRotaryClick(Button2& btn)
 void onSettingsClick(Button2& btn) 
 {
     Serial.println(F("Settings Click"));
-    _lcd.onSettingsClick();
+    Display.onSettingsClick();
 }
 
 /***********************************************
@@ -159,7 +153,7 @@ void onSettingsClick(Button2& btn)
  ***********************************************/
 void onRotaryLongClick(Button2& btn) {
     Serial.println(F("Rotary Long Click!"));
-    _lcd.onRotaryLongClick();
+    Display.onRotaryLongClick();
 }
 
 
@@ -175,7 +169,11 @@ void setup() {
   //   for (;;); // Don't proceed, loop forever
   // }
 
-    _lcd.setup();
+    Serial.println("Setting Up LCD");
+    Wire.begin();
+    Wire.setClock(400000L);
+    delay(100);
+    Display.setup();
 
     _rotary.setChangedHandler(onRotate);
     _rotaryButton.setClickHandler(onRotaryClick);
@@ -213,6 +211,7 @@ void loop() {
     _rotary.loop();
     _rotaryButton.loop();
     _settingsButton.loop();
+    Display.loop();
 }
 
 

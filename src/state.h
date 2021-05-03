@@ -3,7 +3,8 @@
  * Sinleton App State variables
  ***********************************************/
 
-#pragma once
+#ifndef __STATE_H__
+#define __STATE_H__
 
 typedef enum 
 {
@@ -17,10 +18,10 @@ typedef struct
     String status;
     String icon;
     int timeout;
-} Status;
+} SlackStatus;
 
-const int STATUS_COUNT = 7;
-Status ALL_STATUS[STATUS_COUNT] = 
+const int SLACK_STATUS_COUNT = 7;
+SlackStatus ALL_SLACK_STATUS[SLACK_STATUS_COUNT] = 
 {
     {"Available", ":thumbsup:", 0},
     {"Coffee", ":coffee:", 15},
@@ -31,9 +32,4 @@ Status ALL_STATUS[STATUS_COUNT] =
     {"Day off", ":palm_tree:", (24*60)}
 };
 
-typedef struct
-{
-    SCREEN currentScreen = SCREEN_MAIN;
-    Status currentStatus = ALL_STATUS[0];
-} State;
-
+#endif

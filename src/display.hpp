@@ -51,10 +51,9 @@
         - Default Timeout
  
   **************************************************************************/
-#pragma once
+#ifndef __LCD_HPP__
+#define __LCD_HPP__
 
-#include <ESP8266WiFi.h>
-#include <SPI.h>
 #include <Wire.h>
 #include "lcd/Adafruit_I2C_SH1106.h"
 
@@ -66,37 +65,33 @@
 #define OLED_SCREEN_WIDTH       128 
 #define OLED_SCREEN_HEIGHT      64 
 
-#define LINE0 0
-#define LINE1 17
-#define LINE2 30
-#define LINE3 43
-#define LINE4 56
+/* Text Size 1 */
+#define CURSOR_STATUS_BAR 0
+
+/* Text Size 2 */
+#define CURSOR_LINE1 10
+#define CURSOR_LINE2 28
+#define CURSOR_LINE3 46  // 64 - 18
+
 
 
 class LCD 
 {
 
-
 private:
     //Adafruit_SSD1306 mDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, -1);
     Adafruit_I2C_SH1106 _display;
-    State *_state;
-
-
-public:
-    /*************************************************
-     *
-     ************************************************/ 
-    LCD(State *state)
-    {
-        _state = state;
-    }
+    //State *_state;
+    bool _isDirty = false;
+    SlackStatus _currentStatus = ALL_SLACK_STATUS[0];
+    String _ipAddr = "0.0.0.0";
 
     /*************************************************
      *
      ************************************************/ 
     void renderScreen() 
     {
+        
     //display.resetDisplay();
 
     //  display.setChar(2, 2, ('0' + statusId));
@@ -104,9 +99,12 @@ public:
 
         _display.fillScreen(BLACK);
 
-        _display.setCursor(0, LINE0);
-        _display.print(_state->currentStatus.status);
-        _display.drawLine(0, LINE0 + 10, _display.width(), LINE0 + 10, WHITE);
+        _display.setTextSize(1);
+        _display.setTextColor(WHITE); 
+        _display.setCursor(_display.width() / 2, CURSOR_STATUS_BAR);
+        _display.print(_ipAddr);
+
+        renderMainScreen();
 
         _display.flushDisplay();
     // display.clearDisplay();
@@ -147,6 +145,21 @@ public:
 
 
     /***********************************************/
+    void renderMainScreen()
+    {
+        _display.setTextSize(2);
+        _display.setCursor(0, CURSOR_LINE1);
+        _display.print(ALL_SLACK_STATUS[0].status);
+        _display.setCursor(0, CURSOR_LINE2);
+        _display.print(ALL_SLACK_STATUS[1].status);
+        _display.setCursor(0, CURSOR_LINE3);
+        _display.print(ALL_SLACK_STATUS[2].status);
+    }
+
+public:
+    
+
+    /***********************************************/
     void setup() 
     {
 
@@ -156,15 +169,9 @@ public:
     //   for (;;); // Don't proceed, loop forever
     // }
 
-        Wire.begin();
-        Wire.setClock(400000L);
-        delay(100);
-
         _display.init();
-        _display.setTextSize(1);
-        _display.setTextColor(WHITE);
         _display.setTextWrap(false);
-        _display.flushDisplay();
+        
         delay(500);
 
         renderScreen();
@@ -172,44 +179,65 @@ public:
     }
 
     /***********************************************/
-    void onWifiConnected(const WiFiEventStationModeConnected& event) {
-	    
+    void loop()
+    {
+        if (_isDirty) 
+        {
+            Serial.println("LCD isDirty");
+            _isDirty = false;
+            renderScreen();
+        }
     }
 
     /***********************************************/
-    void onWifiGotIp(const WiFiEventStationModeGotIP& event)
+    void onWifiConnected() 
     {
-
+        _ipAddr = "0.0.0.0";
+        _isDirty = true;
     }
 
     /***********************************************/
-    void onWifiDiconnected(const WiFiEventStationModeDisconnected& event)
+    void onWifiGotIp(const String ipAddr)
     {
+        _ipAddr = ipAddr;
+        _isDirty = true;
+    }
 
+    /***********************************************/
+    void onWifiDiconnected()
+    {
+        _ipAddr = "0.0.0.0";
+        _isDirty = true;
     }
 
     /***********************************************/
     void onRotaryInput(boolean increase) 
     {
-
+        _isDirty = true;
     }
 
     /***********************************************/
     void onRotaryClick() 
     {
-
+        _isDirty = true;
     }
 
     /***********************************************/
     void onRotaryLongClick()
     {
-
+        _isDirty = true;
     }
 
     /***********************************************/
     void onSettingsClick()
     {
-
+        _isDirty = true;
     }
 
+
 };
+
+extern LCD Display;
+
+#endif
+
