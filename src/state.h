@@ -6,13 +6,6 @@
 #ifndef __STATE_H__
 #define __STATE_H__
 
-typedef enum 
-{
-    SCREEN_MAIN,
-    SCREEN_SETTINGS,
-    SCREEN_WIFI
-} SCREEN;
-
 typedef struct
 {
     String title;

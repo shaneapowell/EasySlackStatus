@@ -22,7 +22,6 @@
 
     MENU Items
     - Status
-        - Clear
         - Available
         - Coffee        (15m)
         - Lunch         (45m)
@@ -32,10 +31,12 @@
         - Walking Dog   (30m)
         - Vacation
     - Config
-        - WiFi Setup
-        - On/Off web-configurator
-        - Current Wifi IP address
-        - URL to web-configurator
+        - WiFi Setup/Info
+            - Connect
+            - Back
+        - On/Off web-configurator & URL
+            -
+        - Firmware
     
 
     Wifi Setup
@@ -77,7 +78,18 @@
 #define CURSOR_LINE2 28
 #define CURSOR_LINE3 46  // 64 - 18
 
+#define TS1_LINE0 0
+#define TS1_LINE1 17
+#define TS1_LINE2 30
+#define TS1_LINE3 43
+#define TS1_LINE4 56
 
+typedef enum 
+{
+    SCREEN_MAIN,
+    SCREEN_SETTINGS,
+    SCREEN_WIFI
+} SCREEN;
 
 
 class LCD 
@@ -89,13 +101,13 @@ private:
     //State *_state;
 
     bool _isDirty = false;
+    SCREEN _currentScreen = SCREEN_WIFI;
 
     int _currentStatusIndex = 0;
 
     int _mainScreenHighlightedIndex = 0;  /* Which state is currently "highlghted" */
     int _mainScreenScrollBy = 0;          /* The rotary scroll by */
     
-    String _ipAddr = "0.0.0.0";
 
     /*************************************************
      *
@@ -110,15 +122,19 @@ private:
 
         _display.fillScreen(BLACK);
 
-        _display.setTextSize(1);
-        _display.setTextColor(WHITE); 
-        int x = ALL_SLACK_STATUS[_currentStatusIndex].title.length();
-        x /= 2;
-        x *= (6+2);
-        _display.setCursor(x, CURSOR_STATUS_BAR);
-        _display.print(ALL_SLACK_STATUS[_currentStatusIndex].title);
+        switch(_currentScreen)
+        {
+            case SCREEN_MAIN:   
+                renderMainScreen();
+            break;
 
-        renderMainScreen();
+            case SCREEN_WIFI:
+                renderWifiScreen();
+            break;
+
+            case SCREEN_SETTINGS:
+            break;
+        }
 
         _display.flushDisplay();
     // display.clearDisplay();
@@ -161,6 +177,16 @@ private:
     /***********************************************/
     void renderMainScreen()
     {
+        /* Current Status */
+        _display.setTextSize(1);
+        _display.setTextColor(WHITE); 
+        int x = ALL_SLACK_STATUS[_currentStatusIndex].title.length();
+        x /= 2;
+        x *= (6+2);
+        _display.setCursor(x, CURSOR_STATUS_BAR);
+        _display.print(ALL_SLACK_STATUS[_currentStatusIndex].title);
+
+        /* Selection List  */
         int index = _mainScreenScrollBy;
         renderStatusLine(CURSOR_LINE1, ALL_SLACK_STATUS[index],   index == _mainScreenHighlightedIndex);
         renderStatusLine(CURSOR_LINE2, ALL_SLACK_STATUS[index+1], index+1 == _mainScreenHighlightedIndex);
@@ -187,6 +213,51 @@ private:
         _display.print(status.title);
     }
 
+    /***********************************************/
+    void renderWifiScreen()
+    {
+        _display.setTextSize(1);
+        _display.setTextColor(WHITE);
+
+
+        if (WiFi.localIP().isSet())
+        {
+            _display.setCursor(0, TS1_LINE0);
+            _display.print("WiFi:");
+            _display.setCursor(0, TS1_LINE1);
+            _display.print(WiFi.SSID());
+
+            if (WiFi.localIP().isSet())
+            {
+                _display.setCursor(0, TS1_LINE2);
+                String url = WiFi.localIP().toString();
+                _display.print(url);
+
+                _display.setCursor(0, TS1_LINE3);
+                url = "http://" + url + "/";
+                _display.print(url);
+
+            } 
+            else
+            {
+                _display.setCursor(0, TS1_LINE2);
+                _display.print("Obtaining IP...");
+            }
+        }
+        else
+        {
+            _display.setCursor(0, TS1_LINE0);
+            _display.print("WiFi Setup");
+            _display.setCursor(0, TS1_LINE1);
+            _display.print("Connect to WiFi:");
+            _display.setCursor(0, TS1_LINE2);
+            _display.print(WiFi.softAPSSID());
+            _display.setCursor(0, TS1_LINE3);
+            String url = "http://" + WiFi.softAPIP().toString() + "/";
+            _display.print(url);
+        }
+
+    }
 
 public:
     
@@ -222,43 +293,54 @@ public:
     }
 
     /***********************************************/
-    void onWifiConnected() 
+    void onWifiConnecting()
     {
-        _ipAddr = "0.0.0.0";
+        _currentScreen = SCREEN_WIFI;
         _isDirty = true;
     }
 
     /***********************************************/
-    void onWifiGotIp(const String ipAddr)
+    void onWifiConnected() 
     {
-        _ipAddr = ipAddr;
+        _currentScreen = SCREEN_WIFI;
+        _isDirty = true;
+    }
+
+    /***********************************************/
+    void onWifiGotIp()
+    {
+        _currentScreen = SCREEN_MAIN;
         _isDirty = true;
     }
 
     /***********************************************/
     void onWifiDiconnected()
     {
-        _ipAddr = "0.0.0.0";
+        _currentScreen = SCREEN_WIFI;
         _isDirty = true;
     }
 
     /***********************************************/
     void onRotaryInput(boolean increase) 
     {
-        /* Move Highlight Bar */
-        _mainScreenHighlightedIndex += (increase ? 1 : -1);
-        _mainScreenHighlightedIndex = max(_mainScreenHighlightedIndex, 0);
-        _mainScreenHighlightedIndex = min(_mainScreenHighlightedIndex, SLACK_STATUS_COUNT-1);
+        
+        /* MAIN screen   */
+        if (_currentScreen == SCREEN_MAIN)
+        {
+            /* Move Highlight Bar */
+            _mainScreenHighlightedIndex += (increase ? 1 : -1);
+            _mainScreenHighlightedIndex = max(_mainScreenHighlightedIndex, 0);
+            _mainScreenHighlightedIndex = min(_mainScreenHighlightedIndex, SLACK_STATUS_COUNT-1);
 
-        /* Calculate any change in the scroll by */
-        if (_mainScreenHighlightedIndex < _mainScreenScrollBy)
-        {
-            /* Highlight is above the current scroll by bring it back down */
-            _mainScreenScrollBy = _mainScreenHighlightedIndex;
-        } 
-        else if (_mainScreenHighlightedIndex >= _mainScreenScrollBy + LINE_COUNT)
-        {
-            _mainScreenScrollBy = _mainScreenHighlightedIndex - LINE_COUNT + 1;
+            /* Calculate any change in the scroll by */
+            if (_mainScreenHighlightedIndex < _mainScreenScrollBy)
+            {
+                _mainScreenScrollBy = _mainScreenHighlightedIndex;
+            } 
+            else if (_mainScreenHighlightedIndex >= _mainScreenScrollBy + LINE_COUNT)
+            {
+                _mainScreenScrollBy = _mainScreenHighlightedIndex - LINE_COUNT + 1;
+            }
         }
 
         _isDirty = true;
@@ -279,6 +361,14 @@ public:
     /***********************************************/
     void onSettingsClick()
     {
+        if (_currentScreen == SCREEN_MAIN)
+        {
+            _currentScreen = SCREEN_WIFI;
+        }
+        else
+        {
+            _currentScreen = SCREEN_MAIN;
+        }
         _isDirty = true;
     }
 

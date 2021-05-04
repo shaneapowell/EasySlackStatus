@@ -66,6 +66,7 @@
 #include <ArduinoJson.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <IotWebConf.h>
 #include "lcd/Adafruit_I2C_SH1106.h"
 
 //#include "state.h"
@@ -73,16 +74,28 @@
 #include "creds.h"
 
 
-#define PIN_SETTINGS_BUTTON     D3
+#define PIN_SETTINGS_BUTTON     D0
 #define PIN_ROTARY_CLK          D6
 #define PIN_ROTARY_DT           D7
 #define PIN_ROTARY_BUTTON       D5
 #define ROTARY_STEPS_PER_CLICK   4   
 
 
+
+// -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
+const char _iotThingName[] = "EasySlackStatus";
+// -- Initial password to connect to the Thing, when it creates an own Access Point.
+const char _iotWifiInitialApPassword[] = "12345678";
+
+DNSServer _dnsServer;
+WebServer _server(80);
+IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword);
+
+
 WiFiEventHandler _wifiGotIPHandler;
 WiFiEventHandler _wifiConnectedHandler;
 WiFiEventHandler _wifiDisconnectedHandler;
+
 WiFiClientSecure _wifiClient;
 ArduinoSlack mSlack(_wifiClient, SLACK_ACCESS_TOKEN);
 
@@ -92,23 +105,45 @@ Button2 _settingsButton = Button2(PIN_SETTINGS_BUTTON);
 
 LCD Display;
 
+
+/***********************************************/ 
+bool onSoftAPSetupRequest(const char* apName, const char* password)
+{
+    Serial.println(">>> AP Connection");
+    Display.onWifiDiconnected();
+    return WiFi.softAP(apName, password);
+}
+
+/***********************************************/ 
+void onWifiConnectionRequest(const char* ssid, const char* password)
+{
+    Serial.println(">>> WiFi Connection");
+    WiFi.softAPdisconnect();
+    WiFi.begin(ssid, password);
+    Display.onWifiConnecting();
+}
+
 /***********************************************/ 
 void onWifiConnected(const WiFiEventStationModeConnected& event){
 	Serial.print(F("Wifi Connected to AP: ")); Serial.println(event.ssid);
+    Serial.println(_iotWebConf.getState());
 	Display.onWifiConnected();
 }
 
 /***********************************************/  
 void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
 	Serial.println(F("Wifi Disconnected."));
+    Serial.println(_iotWebConf.getState());
 	Display.onWifiDiconnected();
 }
 
 /***********************************************/ 
 void onWifiGotIP(const WiFiEventStationModeGotIP& event){
 	Serial.print(F("Wifi Got IP: ")); Serial.println(event.ip);
-	Display.onWifiGotIp(event.ip.toString());
+    Serial.println(_iotWebConf.getState());
+	Display.onWifiGotIp();
 }
+
 
 /***********************************************
  * on Rotate
@@ -151,10 +186,31 @@ void onSettingsClick(Button2& btn)
 /***********************************************
  * long click
  ***********************************************/
-void onRotaryLongClick(Button2& btn) {
+void onRotaryLongClick(Button2& btn) 
+{
     Serial.println(F("Rotary Long Click!"));
     Display.onRotaryLongClick();
 }
+
+ /***********************************************
+ * long click
+ ***********************************************/
+void handleWebRoot()
+{
+    // -- Let IotWebConf test and handle captive portal requests.
+    if (_iotWebConf.handleCaptivePortal())
+    {
+        // -- Captive portal request were already served.
+        return;
+    }
+    String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
+    s += "<title>IotWebConf 01 Minimal</title></head><body>";
+    s += "Go to <a href='config'>Settings Page</a> to change settings.";
+    s += "</body></html>\n";
+
+    _server.send(200, "text/html", s);
+}
+
 
 
 /***********************************************/
@@ -187,14 +243,25 @@ void setup() {
     _wifiGotIPHandler = WiFi.onStationModeGotIP(onWifiGotIP);
     _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
 
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
+    // Web Configurator
+    _iotWebConf.setApConnectionHandler(onSoftAPSetupRequest);
+    _iotWebConf.setWifiConnectionHandler(onWifiConnectionRequest);
+    _iotWebConf.skipApStartup();
+    _iotWebConf.setStatusPin(LED_BUILTIN);
+    _iotWebConf.setConfigPin(PIN_SETTINGS_BUTTON);
+    _iotWebConf.init();
+    _server.on("/", handleWebRoot);
+    _server.on("/config", []{ _iotWebConf.handleConfig(); });
+    _server.onNotFound([](){ _iotWebConf.handleNotFound(); });
+
+//    WiFi.mode(WIFI_STA);
+//    WiFi.disconnect();
     delay(100);
 
     // Attempt to connect to Wifi network:
-    Serial.print(F("Connecting to: ")); Serial.println(WIFI_SSID);
-    WiFi.setAutoConnect(true);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+//    WiFi.setAutoConnect(false);
+//    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Display.onWifiConnecting();
 
     if (_wifiClient.setFingerprint(SLACK_ACCESS_FINGERPRINT)) {
         Serial.println(F("finger print set success"));
@@ -207,7 +274,9 @@ void setup() {
 
 
 /***********************************************/
-void loop() {
+void loop() 
+{
+    _iotWebConf.doLoop();
     _rotary.loop();
     _rotaryButton.loop();
     _settingsButton.loop();
