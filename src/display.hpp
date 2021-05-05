@@ -85,7 +85,7 @@
 #define TS1_LINE4 56
 
 extern NTPClient _ntpClient;
-char* STATUS_DISPLAY_NAME = "...";
+char* STATUS_DISPLAY_NAME = "---";
 
 typedef enum 
 {
@@ -171,10 +171,16 @@ private:
         if (!_currentProfile.error)
         {
             status = _currentProfile.statusText;
-            int x = _display.width() - (status.length() * 6);
-            _display.setCursor(x, CURSOR_STATUS_BAR);
-            _display.print(status);
+            char* name = strtok(_currentProfile.displayName, " ");
+            if (name != NULL)
+            {
+                _display.setCursor(0, CURSOR_STATUS_BAR);
+                _display.print(name);
+            }
         }
+        int x = _display.width() - (status.length() * 6);
+        _display.setCursor(x, CURSOR_STATUS_BAR);
+        _display.print(status);
 
         /* Time */
 
@@ -236,7 +242,7 @@ private:
         {
             _display.setCursor(0, TS1_LINE2);
             _display.print("Connecting...");
-}
+        }
         else if (WiFi.localIP().isSet())
         {
             _display.setCursor(0, TS1_LINE2);
@@ -248,7 +254,7 @@ private:
             _display.print(url);
 
             char time[32];
-            sprintf(time, "%02d/%02d/%02d %02d:%02d:02d %s", year(), month(), day(), hourFormat12(), minute(), second(), (isPM() ? "pm" : "am"));
+            sprintf(time, "%02d/%02d/%02d %02d:%02d:%02d%s", year(), month(), day(), hourFormat12(), minute(), second(), (isPM() ? "pm" : "am"));
             _display.setCursor(0, TS1_LINE4);
             _display.print(time);
 

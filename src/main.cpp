@@ -86,7 +86,7 @@
 
 const SlackProfile FAKE_PROFILE_SENDING =
 {
-    "Sending...",
+    "",
     "Sending...",
     "",
     0,
@@ -112,7 +112,7 @@ WiFiEventHandler _wifiConnectedHandler;
 WiFiEventHandler _wifiDisconnectedHandler;
 
 WiFiClientSecure _wifiClient;
-ArduinoSlack mSlack(_wifiClient, SLACK_ACCESS_TOKEN);
+ArduinoSlack _slack(_wifiClient, SLACK_ACCESS_TOKEN);
 
 ESPRotary _rotary = ESPRotary(PIN_ROTARY_CLK, PIN_ROTARY_DT, ROTARY_STEPS_PER_CLICK);
 Button2 _rotaryButton = Button2(PIN_ROTARY_BUTTON);
@@ -215,6 +215,7 @@ void onRotate(ESPRotary& r) {
 void onRotaryClick(Button2& btn) 
 {
     Display.setSlackProfile(FAKE_PROFILE_SENDING);
+    Display.loop();
     SlackStatus status = Display.getHighlightedSlackStatus();
     int expire = 0;
 
@@ -224,7 +225,7 @@ void onRotaryClick(Button2& btn)
         expire += (status.expireInMinutes * 60);
     }
     
-    SlackProfile profile = mSlack.setCustomStatus(status.title.c_str(), status.icon.c_str(), expire);
+    SlackProfile profile = _slack.setCustomStatus(status.title.c_str(), status.icon.c_str(), expire);
     Display.setSlackProfile(profile);
 }
 
