@@ -86,9 +86,10 @@
 
 typedef enum 
 {
+    SCREEN_BOOT,
     SCREEN_MAIN,
-    SCREEN_SETTINGS,
-    SCREEN_WIFI
+    SCREEN_WIFI,
+    SCREEN_AP
 } SCREEN;
 
 
@@ -101,7 +102,8 @@ private:
     //State *_state;
 
     bool _isDirty = false;
-    SCREEN _currentScreen = SCREEN_WIFI;
+    SCREEN _currentScreen = SCREEN_BOOT;
+    bool _lockInSettingsScreen = true;
 
     int _currentStatusIndex = 0;
 
@@ -120,19 +122,25 @@ private:
     //  display.setChar(2, 2, ('0' + statusId));
     //  display.display();
 
-        _display.fillScreen(BLACK);
-
         switch(_currentScreen)
         {
+            case SCREEN_BOOT:
+                /* Currently, do nothing, Might be nice to restore the hard-coded logo? Or .. pull it from an asset? */
+            break;
+
             case SCREEN_MAIN:   
+                _display.fillScreen(BLACK);
                 renderMainScreen();
             break;
 
             case SCREEN_WIFI:
+                _display.fillScreen(BLACK);
                 renderWifiScreen();
             break;
 
-            case SCREEN_SETTINGS:
+            case SCREEN_AP:
+                _display.fillScreen(BLACK);
+                renderAPScreen();
             break;
         }
 
@@ -220,42 +228,48 @@ private:
         _display.setTextColor(WHITE);
 
 
+        _display.setCursor(0, TS1_LINE0);
+        _display.print("WiFi:");
+        _display.setCursor(0, TS1_LINE1);
+        _display.print(WiFi.SSID());
+
         if (WiFi.localIP().isSet())
         {
-            _display.setCursor(0, TS1_LINE0);
-            _display.print("WiFi:");
-            _display.setCursor(0, TS1_LINE1);
-            _display.print(WiFi.SSID());
+            _display.setCursor(0, TS1_LINE2);
+            String url = WiFi.localIP().toString();
+            _display.print(url);
 
-            if (WiFi.localIP().isSet())
-            {
-                _display.setCursor(0, TS1_LINE2);
-                String url = WiFi.localIP().toString();
-                _display.print(url);
+            _display.setCursor(0, TS1_LINE3);
+            url = "http://" + url + "/";
+            _display.print(url);
 
-                _display.setCursor(0, TS1_LINE3);
-                url = "http://" + url + "/";
-                _display.print(url);
-
-            } 
-            else
-            {
-                _display.setCursor(0, TS1_LINE2);
-                _display.print("Obtaining IP...");
-            }
-        }
+        } 
         else
         {
-            _display.setCursor(0, TS1_LINE0);
-            _display.print("WiFi Setup");
-            _display.setCursor(0, TS1_LINE1);
-            _display.print("Connect to WiFi:");
             _display.setCursor(0, TS1_LINE2);
-            _display.print(WiFi.softAPSSID());
-            _display.setCursor(0, TS1_LINE3);
-            String url = "http://" + WiFi.softAPIP().toString() + "/";
-            _display.print(url);
+            _display.print("Obtaining IP...");
         }
+    
+
+    }
+
+    /***********************************************/
+    void renderAPScreen()
+    {
+        _display.setTextSize(1);
+        _display.setTextColor(WHITE);
+
+        _display.setCursor(0, TS1_LINE0);
+        _display.print("Configure:");
+        _display.setCursor(0, TS1_LINE1);
+        _display.print("Connect Phone or");
+        _display.setCursor(0, TS1_LINE2);
+        _display.print("Laptop to this WiFi");
+        _display.setCursor(18, TS1_LINE3);
+        _display.print(WiFi.softAPSSID());
+        _display.setCursor(0, TS1_LINE4);
+        String url = "http://" + WiFi.softAPIP().toString() + "/";
+        _display.print(url);
 
     }
 
@@ -293,32 +307,26 @@ public:
     }
 
     /***********************************************/
-    void onWifiConnecting()
+    void setScreen(SCREEN screen)
     {
-        _currentScreen = SCREEN_WIFI;
+        /* Only set the user to the main, if we're not locked in settings.
+        Locked in settings is a result of the wifi not yet connected, or in
+        the AP configure mode. */
+        if (screen == SCREEN_MAIN && _lockInSettingsScreen)
+        {
+            return;
+        }
+
+        _currentScreen = screen;
         _isDirty = true;
     }
 
     /***********************************************/
-    void onWifiConnected() 
+    void lockSettings(bool lock)
     {
-        _currentScreen = SCREEN_WIFI;
-        _isDirty = true;
+        _lockInSettingsScreen = lock;
     }
 
-    /***********************************************/
-    void onWifiGotIp()
-    {
-        _currentScreen = SCREEN_MAIN;
-        _isDirty = true;
-    }
-
-    /***********************************************/
-    void onWifiDiconnected()
-    {
-        _currentScreen = SCREEN_WIFI;
-        _isDirty = true;
-    }
 
     /***********************************************/
     void onRotaryInput(boolean increase) 
@@ -361,14 +369,25 @@ public:
     /***********************************************/
     void onSettingsClick()
     {
-        if (_currentScreen == SCREEN_MAIN)
+        switch (_currentScreen)
         {
-            _currentScreen = SCREEN_WIFI;
+            default:
+            case SCREEN_BOOT:
+            break;
+
+            case SCREEN_MAIN:
+                setScreen(SCREEN_WIFI);
+            break;
+
+            case SCREEN_WIFI:
+                setScreen(SCREEN_MAIN);
+            break;
+
+            case SCREEN_AP:
+                setScreen(SCREEN_MAIN);
+            break;
         }
-        else
-        {
-            _currentScreen = SCREEN_MAIN;
-        }
+
         _isDirty = true;
     }
 
