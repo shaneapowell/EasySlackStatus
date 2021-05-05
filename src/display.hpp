@@ -233,7 +233,12 @@ private:
         _display.setCursor(0, TS1_LINE1);
         _display.print(WiFi.SSID());
 
-        if (WiFi.localIP().isSet())
+        if (!WiFi.isConnected())
+        {
+            _display.setCursor(0, TS1_LINE2);
+            _display.print("Connecting...");
+}
+        else if (WiFi.localIP().isSet())
         {
             _display.setCursor(0, TS1_LINE2);
             String url = WiFi.localIP().toString();

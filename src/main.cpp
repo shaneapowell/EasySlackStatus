@@ -92,7 +92,7 @@ IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPa
 
 
 // WiFiEventHandler _wifiGotIPHandler;
-// WiFiEventHandler _wifiConnectedHandler;
+WiFiEventHandler _wifiConnectedHandler;
 // WiFiEventHandler _wifiDisconnectedHandler;
 
 WiFiClientSecure _wifiClient;
@@ -154,12 +154,11 @@ void onWifiConnectionRequest(const char* ssid, const char* password)
 //    Display.onWifiConnecting();
 }
 
-// /***********************************************/ 
-// void onWifiConnected(const WiFiEventStationModeConnected& event){
-// 	Serial.print(F("Wifi Connected to AP: ")); Serial.println(event.ssid);
-//     Serial.println(_iotWebConf.getState());
-// 	Display.onWifiConnected();
-// }
+/***********************************************/ 
+void onWifiConnected(const WiFiEventStationModeConnected& event){
+	Serial.print(F("Wifi Connected to AP: ")); Serial.println(event.ssid);
+	Display.setScreen(SCREEN_WIFI);
+}
 
 // /***********************************************/  
 // void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
@@ -269,7 +268,7 @@ void setup() {
     _rotaryButton.setLongClickTime(1000);
     _rotaryButton.setDoubleClickHandler(onSettingsClick);
 
-    // _wifiConnectedHandler = WiFi.onStationModeConnected(onWifiConnected);
+    _wifiConnectedHandler = WiFi.onStationModeConnected(onWifiConnected);
     // _wifiGotIPHandler = WiFi.onStationModeGotIP(onWifiGotIP);
     // _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
 
