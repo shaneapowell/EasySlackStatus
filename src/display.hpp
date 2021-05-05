@@ -84,6 +84,9 @@
 #define TS1_LINE3 43
 #define TS1_LINE4 56
 
+extern NTPClient _ntpClient;
+char* STATUS_DISPLAY_NAME = "...";
+
 typedef enum 
 {
     SCREEN_BOOT,
@@ -99,6 +102,7 @@ class LCD
 private:
     //Adafruit_SSD1306 mDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, -1);
     Adafruit_I2C_SH1106 _display;
+    SlackProfile _currentProfile;
     //State *_state;
 
     bool _isDirty = false;
@@ -154,71 +158,66 @@ private:
     }
 
 
-    // void displayProfile(SlackProfile profile)
-    // {
-    //     if (!profile.error)
-    //     {
-    //         Serial.println("--------- Profile ---------");
-
-
-    //         Serial.print("Display Name: ");
-    //         Serial.println(profile.displayName);
-
-    //         Serial.print("Status Text: ");
-    //         Serial.println(profile.statusText);
-
-    //         Serial.print("Status Emoji: ");
-    //         Serial.println(profile.statusEmoji);
-
-    //         Serial.print("Status Expiration: ");
-    //         Serial.println(profile.statusExpiration);
-
-    //         Serial.println("------------------------");
-    //     } 
-    //     else 
-    //     {
-    //         Serial.println("error getting profile");
-    //     }
-    // }
-
-
+    
     /***********************************************/
     void renderMainScreen()
     {
         /* Current Status */
         _display.setTextSize(1);
         _display.setTextColor(WHITE); 
-        int x = ALL_SLACK_STATUS[_currentStatusIndex].title.length();
-        x /= 2;
-        x *= (6+2);
-        _display.setCursor(x, CURSOR_STATUS_BAR);
-        _display.print(ALL_SLACK_STATUS[_currentStatusIndex].title);
+
+        /* Status */
+        String status = "ERROR";
+        if (!_currentProfile.error)
+        {
+            status = _currentProfile.statusText;
+            int x = _display.width() - (status.length() * 6);
+            _display.setCursor(x, CURSOR_STATUS_BAR);
+            _display.print(status);
+        }
+
+        /* Time */
 
         /* Selection List  */
         int index = _mainScreenScrollBy;
-        renderStatusLine(CURSOR_LINE1, ALL_SLACK_STATUS[index],   index == _mainScreenHighlightedIndex);
-        renderStatusLine(CURSOR_LINE2, ALL_SLACK_STATUS[index+1], index+1 == _mainScreenHighlightedIndex);
-        renderStatusLine(CURSOR_LINE3, ALL_SLACK_STATUS[index+2], index+2 == _mainScreenHighlightedIndex);
+        renderStatusLine(CURSOR_LINE1, ALL_SLACK_STATUS[index],   index == _mainScreenHighlightedIndex, ALL_SLACK_STATUS[index].expireInMinutes > 0);
+        renderStatusLine(CURSOR_LINE2, ALL_SLACK_STATUS[index+1], index+1 == _mainScreenHighlightedIndex,  ALL_SLACK_STATUS[index].expireInMinutes > 0);
+        renderStatusLine(CURSOR_LINE3, ALL_SLACK_STATUS[index+2], index+2 == _mainScreenHighlightedIndex,  ALL_SLACK_STATUS[index].expireInMinutes > 0);
     }
 
 
     /***********************************************/
-    void renderStatusLine(int cursorLine, SlackStatus status, bool active)
+    void renderStatusLine(int cursorLine, SlackStatus status, bool active, bool hasDefaultExpiry)
     {
         _display.setTextSize(2);
+        int textColor = WHITE;
 
         if (active)
         {
+            textColor = BLACK;
             _display.fillRect(0, cursorLine-1, _display.width(), LINE_HEIGHT, WHITE);
-            _display.setTextColor(BLACK);
-        }
-        else
-        {
-            _display.setTextColor(WHITE);
         }
 
+        _display.setTextColor(textColor);
         _display.setCursor(1, cursorLine);
         _display.print(status.title);
+
+        /* Put a * at the end to indicate this status has a default expiry */
+        if (status.expireInMinutes > 0)
+        {
+            int w = 10;
+            int r = w / 2;
+            int x = _display.width() - w - 2;
+            int y = cursorLine + 3;
+            int cx = x + r;
+            int cy = y + r;
+
+            _display.drawCircle(cx, cy, r, textColor);
+            _display.drawLine(cx, cy, cx, cy-3, textColor);
+            _display.drawLine(cx, cy, cx+3, cy, textColor);
+            
+            
+        }
     }
 
     /***********************************************/
@@ -248,13 +247,17 @@ private:
             url = "http://" + url + "/";
             _display.print(url);
 
+            char time[32];
+            sprintf(time, "%02d/%02d/%02d %02d:%02d:02d %s", year(), month(), day(), hourFormat12(), minute(), second(), (isPM() ? "pm" : "am"));
+            _display.setCursor(0, TS1_LINE4);
+            _display.print(time);
+
         } 
         else
         {
             _display.setCursor(0, TS1_LINE2);
             _display.print("Obtaining IP...");
         }
-    
 
     }
 
@@ -291,6 +294,11 @@ public:
     //   for (;;); // Don't proceed, loop forever
     // }
 
+        _currentProfile.displayName = STATUS_DISPLAY_NAME;
+        _currentProfile.statusText = STATUS_DISPLAY_NAME;
+        _currentProfile.statusEmoji = NULL;
+        _currentProfile.statusExpiration = 0;
+        _currentProfile.error = false;
         _display.init();
         _display.setTextWrap(false);
         
@@ -310,6 +318,44 @@ public:
             renderScreen();
         }
     }
+
+    /***********************************************/
+    SlackStatus getHighlightedSlackStatus()
+    {
+        return ALL_SLACK_STATUS[_mainScreenHighlightedIndex];
+    }
+
+    /********************************************/
+    void setSlackProfile(SlackProfile profile)
+    {
+        _currentProfile = profile;
+        if (!profile.error)
+        {
+            Serial.println("--------- Profile ---------");
+
+
+            Serial.print("Display Name: ");
+            Serial.println(profile.displayName);
+
+            Serial.print("Status Text: ");
+            Serial.println(profile.statusText);
+
+            Serial.print("Status Emoji: ");
+            Serial.println(profile.statusEmoji);
+
+            Serial.print("Status Expiration: ");
+            Serial.println(profile.statusExpiration);
+
+            Serial.println("------------------------");
+        } 
+        else 
+        {
+            Serial.println("error getting profile");
+        }
+
+        _isDirty = true;
+    }
+
 
     /***********************************************/
     void setScreen(SCREEN screen)

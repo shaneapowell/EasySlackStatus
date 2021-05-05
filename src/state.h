@@ -10,19 +10,21 @@ typedef struct
 {
     String title;
     String icon;
-    int timeout;
+    int expireInMinutes;
 } SlackStatus;
 
-const int SLACK_STATUS_COUNT = 7;
+const int SLACK_STATUS_COUNT = 9;
 SlackStatus ALL_SLACK_STATUS[SLACK_STATUS_COUNT] = 
 {
-    {"Available", ":thumbsup:", 0},
+    {"Available", ":computer:", 0},
     {"Coffee", ":coffee:", 15},
-    {"Lunch", ":hamburger:", 45},
+    {"Lunch", ":hamburger:", 60},
     {"Meeting", ":calendar:", 60},
     {"Offline", ":x:", 0},
-    {"Doctor", ":hospital", 90},
-    {"Day off", ":palm_tree:", (24*60)}
+    {"Walk Dog", ":dog2:", 30},
+    {"Doctor", ":stethoscope:", 90},
+    {"Day off", ":palm_tree:", 0},
+    {"Sleeping", ":sleeping:", 0}
 };
 
 #endif

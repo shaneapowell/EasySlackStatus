@@ -57,6 +57,10 @@
  
   **************************************************************************/
 
+#include <Time.h>
+#include <Timezone.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 #include <Button2.h>
 #include <ESPRotary.h>
 #include <ESP8266WiFi.h>
@@ -70,6 +74,7 @@
 #include "lcd/Adafruit_I2C_SH1106.h"
 
 //#include "state.h"
+#include "main.h"
 #include "display.hpp"
 #include "creds.h"
 
@@ -79,12 +84,23 @@
 #define PIN_ROTARY_BUTTON       D5
 #define ROTARY_STEPS_PER_CLICK   4   
 
+const SlackProfile FAKE_PROFILE_SENDING =
+{
+    "Sending...",
+    "Sending...",
+    "",
+    0,
+    false
+};
 
-
-// -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char _iotThingName[] = "EasySlackStatus";
-// -- Initial password to connect to the Thing, when it creates an own Access Point.
 const char _iotWifiInitialApPassword[] = "12345678";
+
+WiFiUDP _ntpUDP;
+NTPClient _ntpClient(_ntpUDP, "us.pool.ntp.org"); /* Used extern in display.cpp  */
+TimeChangeRule _usCDT = {"CDT", Second, Sun, Mar, 2, -300};  //UTC - 5 hours
+TimeChangeRule _usCST = {"CST", First, Sun, Nov, 2, -360};   //UTC - 6 hours
+Timezone _usCentral(_usCDT, _usCST);
 
 DNSServer _dnsServer;
 WebServer _server(80);
@@ -93,7 +109,7 @@ IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPa
 
 // WiFiEventHandler _wifiGotIPHandler;
 WiFiEventHandler _wifiConnectedHandler;
-// WiFiEventHandler _wifiDisconnectedHandler;
+WiFiEventHandler _wifiDisconnectedHandler;
 
 WiFiClientSecure _wifiClient;
 ArduinoSlack mSlack(_wifiClient, SLACK_ACCESS_TOKEN);
@@ -127,6 +143,7 @@ void onStateChanged(byte oldState, byte newState)
         case IOTWEBCONF_STATE_ONLINE:
             Display.lockSettings(false);
             Display.setScreen(SCREEN_MAIN);
+            _ntpClient.begin();
         break;
 
         default:
@@ -160,12 +177,10 @@ void onWifiConnected(const WiFiEventStationModeConnected& event){
 	Display.setScreen(SCREEN_WIFI);
 }
 
-// /***********************************************/  
-// void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
-// 	Serial.println(F("Wifi Disconnected."));
-//     Serial.println(_iotWebConf.getState());
-// 	Display.onWifiDiconnected();
-// }
+/***********************************************/  
+void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
+	_ntpClient.end();
+}
 
 // /***********************************************/ 
 // void onWifiGotIP(const WiFiEventStationModeGotIP& event){
@@ -199,9 +214,18 @@ void onRotate(ESPRotary& r) {
  ***********************************************/
 void onRotaryClick(Button2& btn) 
 {
-    //profile = mSlack.setCustomStatus(status[position][0], status[position][1]);
-    //displayProfile(profile);
-    Display.onRotaryClick();
+    Display.setSlackProfile(FAKE_PROFILE_SENDING);
+    SlackStatus status = Display.getHighlightedSlackStatus();
+    int expire = 0;
+
+    if (status.expireInMinutes > 0)
+    {
+        expire = _ntpClient.getEpochTime();
+        expire += (status.expireInMinutes * 60);
+    }
+    
+    SlackProfile profile = mSlack.setCustomStatus(status.title.c_str(), status.icon.c_str(), expire);
+    Display.setSlackProfile(profile);
 }
 
 /***********************************************
@@ -241,7 +265,15 @@ void handleWebRoot()
     _server.send(200, "text/html", s);
 }
 
-
+/********************************************
+ * Get the NTP fetched time, converted to our timezone 
+ ********************************************/
+time_t getNtpTime()
+{
+	time_t utcNow = _ntpClient.getEpochTime();
+	time_t centralNow = _usCentral.toLocal(utcNow);
+	return centralNow;
+}
 
 /***********************************************/
 void setup() {
@@ -270,7 +302,7 @@ void setup() {
 
     _wifiConnectedHandler = WiFi.onStationModeConnected(onWifiConnected);
     // _wifiGotIPHandler = WiFi.onStationModeGotIP(onWifiGotIP);
-    // _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
+    _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
 
     // Web Configurator
     _iotWebConf.setStateChangedCallback(onStateChanged);
@@ -301,6 +333,14 @@ void setup() {
 /***********************************************/
 void loop() 
 {
+    _ntpClient.update();
+	if (timeStatus() == timeNotSet && _ntpClient.getEpochTime() > 946688461) /* Jan 1 2000 */
+	{
+		/* DateTime, Sync fast until both ntptime and time are equal */
+		setSyncProvider(getNtpTime);
+		Serial.println("DATE TIME SYNCED");
+	}
+
     _iotWebConf.doLoop();
     _rotary.loop();
     _rotaryButton.loop();
