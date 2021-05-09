@@ -16,7 +16,7 @@ typedef struct
 const int SLACK_STATUS_COUNT = 9;
 SlackStatus ALL_SLACK_STATUS[SLACK_STATUS_COUNT] = 
 {
-    {"Available", ":computer:", 0},
+    {"Available", ":white_check_mark:", 0},
     {"Coffee", ":coffee:", 15},
     {"Lunch", ":hamburger:", 60},
     {"Meeting", ":calendar:", 60},

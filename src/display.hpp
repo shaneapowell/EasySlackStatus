@@ -91,9 +91,20 @@ typedef enum
 {
     SCREEN_BOOT,
     SCREEN_MAIN,
+    SCREEN_SET_EXPIRE,
     SCREEN_WIFI,
     SCREEN_AP
 } SCREEN;
+
+
+const SlackProfile FAKE_PROFILE_SENDING =
+{
+    "",
+    "Sending...",
+    "",
+    0,
+    false
+};
 
 
 class LCD 
@@ -113,6 +124,8 @@ private:
 
     int _mainScreenHighlightedIndex = 0;  /* Which state is currently "highlghted" */
     int _mainScreenScrollBy = 0;          /* The rotary scroll by */
+
+    int _userSetExpiryInMinutes = -1;
     
 
     /*************************************************
@@ -121,11 +134,6 @@ private:
     void renderScreen() 
     {
         
-    //display.resetDisplay();
-
-    //  display.setChar(2, 2, ('0' + statusId));
-    //  display.display();
-
         switch(_currentScreen)
         {
             case SCREEN_BOOT:
@@ -133,28 +141,24 @@ private:
             break;
 
             case SCREEN_MAIN:   
-                _display.fillScreen(BLACK);
                 renderMainScreen();
             break;
 
+            case SCREEN_SET_EXPIRE:
+                renderSetExpireScreen();
+            break;
+
             case SCREEN_WIFI:
-                _display.fillScreen(BLACK);
                 renderWifiScreen();
             break;
 
             case SCREEN_AP:
-                _display.fillScreen(BLACK);
                 renderAPScreen();
             break;
         }
 
         _display.flushDisplay();
-    // display.clearDisplay();
-    // display.setTextSize(2);
-    // display.setTextColor(WHITE);
-    // display.setCursor(15, 26);
-    // display.println(status[statusId][0]);
-    // display.display();
+
     }
 
 
@@ -162,6 +166,9 @@ private:
     /***********************************************/
     void renderMainScreen()
     {
+        
+        _display.fillScreen(BLACK);
+
         /* Current Status */
         _display.setTextSize(1);
         _display.setTextColor(WHITE); 
@@ -191,7 +198,6 @@ private:
         renderStatusLine(CURSOR_LINE3, ALL_SLACK_STATUS[index+2], index+2 == _mainScreenHighlightedIndex,  ALL_SLACK_STATUS[index].expireInMinutes > 0);
     }
 
-
     /***********************************************/
     void renderStatusLine(int cursorLine, SlackStatus status, bool active, bool hasDefaultExpiry)
     {
@@ -208,27 +214,56 @@ private:
         _display.setCursor(1, cursorLine);
         _display.print(status.title);
 
-        /* Put a * at the end to indicate this status has a default expiry */
-        if (status.expireInMinutes > 0)
-        {
-            int w = 10;
-            int r = w / 2;
-            int x = _display.width() - w - 2;
-            int y = cursorLine + 3;
-            int cx = x + r;
-            int cy = y + r;
+        // /* Put a * at the end to indicate this status has a default expiry */
+        // if (status.expireInMinutes > 0)
+        // {
+        //     int w = 10;
+        //     int r = w / 2;
+        //     int x = _display.width() - w - 2;
+        //     int y = cursorLine + 3;
+        //     int cx = x + r;
+        //     int cy = y + r;
 
-            _display.drawCircle(cx, cy, r, textColor);
-            _display.drawLine(cx, cy, cx, cy-3, textColor);
-            _display.drawLine(cx, cy, cx+3, cy, textColor);
+        //     _display.drawCircle(cx, cy, r, textColor);
+        //     _display.drawLine(cx, cy, cx, cy-3, textColor);
+        //     _display.drawLine(cx, cy, cx+3, cy, textColor);
             
             
-        }
+        // }
+    }
+
+
+    /***********************************************/
+    void renderSetExpireScreen()
+    {
+
+        _display.fillScreen(BLACK);
+
+        /* Current Status */
+        _display.setTextSize(2);
+        _display.setTextColor(WHITE); 
+
+        SlackStatus status = getHighlightedSlackStatus();
+
+        _display.setCursor(0, CURSOR_LINE1);
+        _display.print(status.title);
+
+        _display.setCursor(0, CURSOR_LINE2);
+        _display.print("Expire In");
+
+        char expiryLine[32];
+        sprintf(expiryLine, "< %02d min >", _userSetExpiryInMinutes);
+        _display.setCursor(_display.width() / 2 - ( strlen(expiryLine) / 2 * 12), CURSOR_LINE3);
+        _display.print(expiryLine);
+
+
+
     }
 
     /***********************************************/
     void renderWifiScreen()
     {
+        _display.fillScreen(BLACK);
         _display.setTextSize(1);
         _display.setTextColor(WHITE);
 
@@ -270,6 +305,7 @@ private:
     /***********************************************/
     void renderAPScreen()
     {
+        _display.fillScreen(BLACK);
         _display.setTextSize(1);
         _display.setTextColor(WHITE);
 
@@ -307,8 +343,15 @@ public:
         _currentProfile.error = false;
         _display.init();
         _display.setTextWrap(false);
-        
-        delay(500);
+
+        /* Brief Version Display */
+        _display.setTextSize(1);
+        _display.setTextColor(WHITE);
+        _display.setCursor(10, TS1_LINE4);
+        _display.print(APP_VERSION_NAME);
+        _display.flushDisplay();
+
+        delay(1000);
 
         renderScreen();
 
@@ -317,12 +360,20 @@ public:
     /***********************************************/
     void loop()
     {
+        /* I guess you can cal this a whopping 2fps */
+        static long lastRenderMs = 0;
+        if (millis() - lastRenderMs > 500) 
+        {
+            _isDirty = true;
+        }
+
         if (_isDirty) 
         {
-            Serial.println("LCD isDirty");
+            lastRenderMs = millis();
             _isDirty = false;
             renderScreen();
         }
+
     }
 
     /***********************************************/
@@ -374,6 +425,17 @@ public:
             return;
         }
 
+        /* If jumping to the expire set screen, pre-set the expire minutes */
+        if (screen == SCREEN_SET_EXPIRE) 
+        {
+            _userSetExpiryInMinutes = getHighlightedSlackStatus().expireInMinutes;
+
+            /* Another long-press goes back to the main screen. Aka.. cancel */
+            if (_currentScreen == SCREEN_SET_EXPIRE) {
+                screen = SCREEN_MAIN;
+            }
+        }
+
         _currentScreen = screen;
         _isDirty = true;
     }
@@ -407,29 +469,86 @@ public:
                 _mainScreenScrollBy = _mainScreenHighlightedIndex - LINE_COUNT + 1;
             }
         }
+        else if (_currentScreen == SCREEN_SET_EXPIRE)
+        {
+            if (increase) {
+                _userSetExpiryInMinutes++;
+            } else {
+                _userSetExpiryInMinutes--;
+            }
+            _userSetExpiryInMinutes = max(_userSetExpiryInMinutes, 0);
+            _userSetExpiryInMinutes = min(_userSetExpiryInMinutes, 999);
+        }
 
         _isDirty = true;
     }
 
     /***********************************************/
-    void onRotaryClick() 
+    void onRotaryClick(ArduinoSlack *slack) 
     {
+        
+        SlackStatus status = getHighlightedSlackStatus();
+        int expireInMinute = 0;
+        int expireUTC = 0;
+
+        switch(_currentScreen)
+        {
+            default:
+            break;
+
+            case(SCREEN_MAIN):
+            break;
+
+            case(SCREEN_SET_EXPIRE):
+                expireInMinute = _userSetExpiryInMinutes;
+            break;
+            
+        }
+        
+        setScreen(SCREEN_MAIN);
+        setSlackProfile(FAKE_PROFILE_SENDING);
         _isDirty = true;
+        renderScreen();
+
+        if (expireInMinute > 0)
+        {
+            expireUTC = _ntpClient.getEpochTime();
+            expireUTC += (expireInMinute * 60);
+        }
+        
+        SlackProfile profile = slack->setCustomStatus(status.title.c_str(), status.icon.c_str(), expireUTC);
+        setSlackProfile(profile);
+
+        _isDirty = true;
+    }
+
+    /***********************************************/
+    void onRotaryDoubleClick()
+    {
+        switch(_currentScreen)
+        {
+            default:
+            break;
+
+            case SCREEN_MAIN:
+                setScreen(SCREEN_SET_EXPIRE);
+            break;
+
+            case SCREEN_SET_EXPIRE:
+                setScreen(SCREEN_MAIN);
+            break;
+        }
+        
     }
 
     /***********************************************/
     void onRotaryLongClick()
     {
-        _isDirty = true;
-    }
-
-    /***********************************************/
-    void onSettingsClick()
-    {
         switch (_currentScreen)
         {
             default:
             case SCREEN_BOOT:
+            case SCREEN_SET_EXPIRE:
             break;
 
             case SCREEN_MAIN:

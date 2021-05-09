@@ -79,25 +79,18 @@
 #include "creds.h"
 
 
-#define PIN_ROTARY_CLK          D6
 #define PIN_ROTARY_DT           D7
+#define PIN_ROTARY_CLK          D6
 #define PIN_ROTARY_BUTTON       D5
 #define ROTARY_STEPS_PER_CLICK   4   
 
-const SlackProfile FAKE_PROFILE_SENDING =
-{
-    "",
-    "Sending...",
-    "",
-    0,
-    false
-};
 
 const char _iotThingName[] = "EasySlackStatus";
 const char _iotWifiInitialApPassword[] = "12345678";
 
 WiFiUDP _ntpUDP;
 NTPClient _ntpClient(_ntpUDP, "us.pool.ntp.org"); /* Used extern in display.cpp  */
+
 TimeChangeRule _usCDT = {"CDT", Second, Sun, Mar, 2, -300};  //UTC - 5 hours
 TimeChangeRule _usCST = {"CST", First, Sun, Nov, 2, -360};   //UTC - 6 hours
 Timezone _usCentral(_usCDT, _usCST);
@@ -214,28 +207,15 @@ void onRotate(ESPRotary& r) {
  ***********************************************/
 void onRotaryClick(Button2& btn) 
 {
-    Display.setSlackProfile(FAKE_PROFILE_SENDING);
-    Display.loop();
-    SlackStatus status = Display.getHighlightedSlackStatus();
-    int expire = 0;
-
-    if (status.expireInMinutes > 0)
-    {
-        expire = _ntpClient.getEpochTime();
-        expire += (status.expireInMinutes * 60);
-    }
-    
-    SlackProfile profile = _slack.setCustomStatus(status.title.c_str(), status.icon.c_str(), expire);
-    Display.setSlackProfile(profile);
+    Display.onRotaryClick(&_slack);
 }
 
 /***********************************************
- * single click
+ * Double click
  ***********************************************/
-void onSettingsClick(Button2& btn) 
+void onRotaryDoubleClick(Button2& btn) 
 {
-    Serial.println(F("Settings Click"));
-    Display.onSettingsClick();
+    Display.onRotaryDoubleClick();
 }
 
 /***********************************************
@@ -299,7 +279,7 @@ void setup() {
     _rotaryButton.setLongClickDetectedHandler(onRotaryLongClick); 
     _rotaryButton.setLongClickDetectedRetriggerable(false);
     _rotaryButton.setLongClickTime(1000);
-    _rotaryButton.setDoubleClickHandler(onSettingsClick);
+    _rotaryButton.setDoubleClickHandler(onRotaryDoubleClick);
 
     _wifiConnectedHandler = WiFi.onStationModeConnected(onWifiConnected);
     // _wifiGotIPHandler = WiFi.onStationModeGotIP(onWifiGotIP);
@@ -327,7 +307,6 @@ void setup() {
         Serial.println(F("finger print set failure"));
     }
 
-
 }
 
 
@@ -346,6 +325,16 @@ void loop()
     _rotary.loop();
     _rotaryButton.loop();
     Display.loop();
+
+
+    static bool itsDone = false;
+    if (!itsDone && millis() > 15 * 1000 )
+    {
+        itsDone = true;
+        Serial.println(">>> get status");
+        SlackProfile profile = _slack.setCustomStatus("", "", 0);
+    }
+
 }
 
 
