@@ -71,13 +71,19 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <IotWebConf.h>
-#include "lcd/Adafruit_I2C_SH1106.h"
+#include <IotWebConfUsing.h> 
+#include <IotWebConfParameter.h>
+#include <string.h>
 
-//#include "state.h"
+#include "status.h"
 #include "main.h"
 #include "display.hpp"
-#include "creds.h"
 
+#define SLACK_ACCESS_FINGERPRINT "C3 CC ED 77 87 19 6D E7 76 5E AA A7 3D 67 7E CA 95 D2 46 E2"
+#define MAX_SLACK_TOKEN_LENGTH 128
+
+// -- Configuration specific key. The value should be modified if config structure was changed.
+#define IOTWEB_CONFIG_VERSION  APP_VERSION_NAME
 
 #define PIN_ROTARY_DT           D7
 #define PIN_ROTARY_CLK          D6
@@ -85,8 +91,12 @@
 #define ROTARY_STEPS_PER_CLICK   4   
 
 
-const char _iotThingName[] = "EasySlackStatus";
-const char _iotWifiInitialApPassword[] = "12345678";
+const char* _iotThingName = "EasySlackStatus";
+const char* _iotWifiInitialApPassword = "12345678";
+const char* _slackTokenLabel = "Slack-Token";
+const char* _statusLabel = "Status";
+const char* _iconLabel = "Icon (must include wrapping \':\')";
+const char* _expireLabel = "Default Expire in Minutes";
 
 WiFiUDP _ntpUDP;
 NTPClient _ntpClient(_ntpUDP, "us.pool.ntp.org"); /* Used extern in display.cpp  */
@@ -97,15 +107,16 @@ Timezone _usCentral(_usCDT, _usCST);
 
 DNSServer _dnsServer;
 WebServer _server(80);
-IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword);
+IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword, IOTWEB_CONFIG_VERSION);
 
 
 // WiFiEventHandler _wifiGotIPHandler;
 WiFiEventHandler _wifiConnectedHandler;
 WiFiEventHandler _wifiDisconnectedHandler;
 
+char _slackAccessToken[MAX_SLACK_TOKEN_LENGTH] = "xoxp-xxxx";
 WiFiClientSecure _wifiClient;
-ArduinoSlack _slack(_wifiClient, SLACK_ACCESS_TOKEN);
+ArduinoSlack* _slack;
 
 ESPRotary _rotary = ESPRotary(PIN_ROTARY_CLK, PIN_ROTARY_DT, ROTARY_STEPS_PER_CLICK);
 Button2 _rotaryButton = Button2(PIN_ROTARY_BUTTON);
@@ -114,7 +125,7 @@ LCD Display;
 
 
 /***********************************************/ 
-void onStateChanged(byte oldState, byte newState)
+void onIotWebStateChanged(byte oldState, byte newState)
 {
     switch (newState) 
     {
@@ -147,8 +158,15 @@ void onStateChanged(byte oldState, byte newState)
 
 }
 
+/***********************************************/ 
+void onIotWebConfigSaved()
+{
+  Serial.println("Configuration was updated.");
+}
 
-bool onSoftAPSetupRequest(const char* apName, const char* password)
+
+/***********************************************/ 
+bool onIotWebSoftAPSetupRequest(const char* apName, const char* password)
 {
     Serial.println(">>> AP Connection");
 //    Display.onWifiDiconnected();
@@ -156,7 +174,7 @@ bool onSoftAPSetupRequest(const char* apName, const char* password)
 }
 
 /***********************************************/ 
-void onWifiConnectionRequest(const char* ssid, const char* password)
+void onIotWebWifiConnectionRequest(const char* ssid, const char* password)
 {
     Serial.println(">>> WiFi Connection");
     WiFi.softAPdisconnect();
@@ -207,7 +225,7 @@ void onRotate(ESPRotary& r) {
  ***********************************************/
 void onRotaryClick(Button2& btn) 
 {
-    Display.onRotaryClick(&_slack);
+    Display.onRotaryClick(_slack);
 }
 
 /***********************************************
@@ -257,8 +275,9 @@ time_t getNtpTime()
 }
 
 /***********************************************/
+
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
 
     delay(10);
 
@@ -286,12 +305,64 @@ void setup() {
     _wifiDisconnectedHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
 
     // Web Configurator
-    _iotWebConf.setStateChangedCallback(onStateChanged);
-    _iotWebConf.setApConnectionHandler(onSoftAPSetupRequest);
-    _iotWebConf.setWifiConnectionHandler(onWifiConnectionRequest);
+    _iotWebConf.setStateChangedCallback(onIotWebStateChanged);
+    _iotWebConf.setApConnectionHandler(onIotWebSoftAPSetupRequest);
+    _iotWebConf.setWifiConnectionHandler(onIotWebWifiConnectionRequest);
     _iotWebConf.skipApStartup();
     _iotWebConf.setStatusPin(LED_BUILTIN);
     _iotWebConf.setConfigPin(PIN_ROTARY_BUTTON);
+    _iotWebConf.setConfigSavedCallback(&onIotWebConfigSaved);
+
+    /* Slack Token */
+    _iotWebConf.addSystemParameter( new IotWebConfTextParameter(_slackTokenLabel, 
+                                                                _slackTokenLabel,
+                                                                _slackAccessToken,
+                                                                MAX_SLACK_TOKEN_LENGTH,
+                                                                _slackAccessToken));
+
+    /* Add each slack status override to the conf. Create on the heap, NOT the stack */
+    char  buff[48];
+    for (int index = 0; index < SLACK_STATUS_COUNT; index++)
+    {
+        /* Group Param, needs to be created, and left on the heap */
+        sprintf(buff, "Status%02d", index);
+        String* paramKey = new String(buff);
+        sprintf(buff, "Status %d", index+1);
+        String* groupLabel = new String(buff);
+        iotwebconf::ParameterGroup* paramGroup = new IotWebConfParameterGroup(paramKey->c_str(), 
+                                                                              groupLabel->c_str());
+
+        /* Status Label */
+        sprintf(buff, "label%02d", index);
+        paramKey = new String(buff);
+        paramGroup->addItem(new IotWebConfTextParameter(_statusLabel, 
+                                                        paramKey->c_str(), 
+                                                        _slackStatusList[index].title, 
+                                                        SLACK_STATUS_CHARS_MAX+1,
+                                                        _slackStatusList[index].title,
+                                                        SLACK_STATUS_BLANK_STATUS));
+        /* Status Icon */
+        sprintf(buff, "icon%02d", index);
+        paramKey = new String(buff);
+        paramGroup->addItem(new IotWebConfTextParameter(_iconLabel, 
+                                                        paramKey->c_str(), 
+                                                        _slackStatusList[index].icon, 
+                                                        SLACK_STATUS_ICON_CHARS_MAX+1,
+                                                        _slackStatusList[index].icon,
+                                                        SLACK_STATUS_BLANK_ICON));
+        /* Status Expiry */
+        sprintf(buff, "expire%02d", index);
+        paramKey = new String(buff);
+        paramGroup->addItem(new IotWebConfNumberParameter(_expireLabel, 
+                                                          paramKey->c_str(), 
+                                                          _slackStatusList[index].expireInMinutes, 
+                                                          SLACK_STATUS_EXPIRE_CHARS_MAX+1,
+                                                          _slackStatusList[index].expireInMinutes,
+                                                          SLACK_STATUS_BLANK_EXPIRE));
+
+        _iotWebConf.addParameterGroup(paramGroup);
+    }
+
     _iotWebConf.init();
     _server.on("/", handleWebRoot);
     _server.on("/config", []{ _iotWebConf.handleConfig(); });
@@ -306,6 +377,8 @@ void setup() {
     } else {
         Serial.println(F("finger print set failure"));
     }
+
+    _slack = new ArduinoSlack(_wifiClient, _slackAccessToken);
 
 }
 
@@ -327,13 +400,14 @@ void loop()
     Display.loop();
 
 
-    static bool itsDone = false;
-    if (!itsDone && millis() > 15 * 1000 )
-    {
-        itsDone = true;
-        Serial.println(">>> get status");
-        SlackProfile profile = _slack.setCustomStatus("", "", 0);
-    }
+    // static bool itsDone = false;
+    // if (!itsDone && millis() > 15 * 1000 )
+    // {
+    //     itsDone = true;
+    //     Serial.println(">>> get status");
+    //     SlackProfile profile = _slack.getCurrentStatus();
+    //     Serial.print(">>> "); Serial.println(profile.displayName);
+    // }
 
 }
 

@@ -58,7 +58,7 @@
 #include <Wire.h>
 #include "lcd/Adafruit_I2C_SH1106.h"
 
-#include "state.h"
+#include "status.h"
 
 #define PIN_OLED_DATA           D2 
 #define PIN_OLED_CLOCK          D1 
@@ -85,7 +85,7 @@
 #define TS1_LINE4 56
 
 extern NTPClient _ntpClient;
-char* STATUS_DISPLAY_NAME = "---";
+char STATUS_DISPLAY_NAME[] = "---";
 
 typedef enum 
 {
@@ -193,9 +193,9 @@ private:
 
         /* Selection List  */
         int index = _mainScreenScrollBy;
-        renderStatusLine(CURSOR_LINE1, ALL_SLACK_STATUS[index],   index == _mainScreenHighlightedIndex, ALL_SLACK_STATUS[index].expireInMinutes > 0);
-        renderStatusLine(CURSOR_LINE2, ALL_SLACK_STATUS[index+1], index+1 == _mainScreenHighlightedIndex,  ALL_SLACK_STATUS[index].expireInMinutes > 0);
-        renderStatusLine(CURSOR_LINE3, ALL_SLACK_STATUS[index+2], index+2 == _mainScreenHighlightedIndex,  ALL_SLACK_STATUS[index].expireInMinutes > 0);
+        renderStatusLine(CURSOR_LINE1, _slackStatusList[index],   index == _mainScreenHighlightedIndex, _slackStatusList[index].expireInMinutes > 0);
+        renderStatusLine(CURSOR_LINE2, _slackStatusList[index+1], index+1 == _mainScreenHighlightedIndex,  _slackStatusList[index].expireInMinutes > 0);
+        renderStatusLine(CURSOR_LINE3, _slackStatusList[index+2], index+2 == _mainScreenHighlightedIndex,  _slackStatusList[index].expireInMinutes > 0);
     }
 
     /***********************************************/
@@ -214,22 +214,6 @@ private:
         _display.setCursor(1, cursorLine);
         _display.print(status.title);
 
-        // /* Put a * at the end to indicate this status has a default expiry */
-        // if (status.expireInMinutes > 0)
-        // {
-        //     int w = 10;
-        //     int r = w / 2;
-        //     int x = _display.width() - w - 2;
-        //     int y = cursorLine + 3;
-        //     int cx = x + r;
-        //     int cy = y + r;
-
-        //     _display.drawCircle(cx, cy, r, textColor);
-        //     _display.drawLine(cx, cy, cx, cy-3, textColor);
-        //     _display.drawLine(cx, cy, cx+3, cy, textColor);
-            
-            
-        // }
     }
 
 
@@ -379,17 +363,17 @@ public:
     /***********************************************/
     SlackStatus getHighlightedSlackStatus()
     {
-        return ALL_SLACK_STATUS[_mainScreenHighlightedIndex];
+        return _slackStatusList[_mainScreenHighlightedIndex];
     }
 
     /********************************************/
     void setSlackProfile(SlackProfile profile)
     {
         _currentProfile = profile;
+        
         if (!profile.error)
         {
             Serial.println("--------- Profile ---------");
-
 
             Serial.print("Display Name: ");
             Serial.println(profile.displayName);
@@ -428,7 +412,7 @@ public:
         /* If jumping to the expire set screen, pre-set the expire minutes */
         if (screen == SCREEN_SET_EXPIRE) 
         {
-            _userSetExpiryInMinutes = getHighlightedSlackStatus().expireInMinutes;
+            _userSetExpiryInMinutes = atoi(getHighlightedSlackStatus().expireInMinutes);
 
             /* Another long-press goes back to the main screen. Aka.. cancel */
             if (_currentScreen == SCREEN_SET_EXPIRE) {
@@ -516,7 +500,7 @@ public:
             expireUTC += (expireInMinute * 60);
         }
         
-        SlackProfile profile = slack->setCustomStatus(status.title.c_str(), status.icon.c_str(), expireUTC);
+        SlackProfile profile = slack->setCustomStatus(status.title, status.icon, expireUTC);
         setSlackProfile(profile);
 
         _isDirty = true;
