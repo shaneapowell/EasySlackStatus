@@ -73,6 +73,7 @@
 #include <IotWebConf.h>
 #include <IotWebConfUsing.h> 
 #include <IotWebConfParameter.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <string.h>
 
 #include "status.h"
@@ -108,7 +109,7 @@ Timezone _usCentral(_usCDT, _usCST);
 DNSServer _dnsServer;
 WebServer _server(80);
 IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword, IOTWEB_CONFIG_VERSION);
-
+ESP8266HTTPUpdateServer _httpUpdater;
 
 // WiFiEventHandler _wifiGotIPHandler;
 WiFiEventHandler _wifiConnectedHandler;
@@ -362,6 +363,11 @@ void setup() {
 
         _iotWebConf.addParameterGroup(paramGroup);
     }
+
+    _iotWebConf.setupUpdateServer(
+        [](const char* updatePath) { _httpUpdater.setup(&_server, updatePath); },
+        [](const char* userName, char* password) { _httpUpdater.updateCredentials(userName, password); });
+
 
     _iotWebConf.init();
     _server.on("/", handleWebRoot);
