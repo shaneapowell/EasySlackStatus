@@ -3,7 +3,7 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
 
 # Hardware 
 - Wemos D1 Mini
-- 128x64 pixel oled display
+- 128x64 pixel SH1106 oled display
 - Rotary encoder with push button
 
 # Obtain a unique to you Slack-Token
@@ -75,6 +75,39 @@ Ask @Shane.Powell for help getting a slack token.
 
 * How can I view the serial output of the Arduino?
     * Simply connect the USB to your laptop, and open a serial terminal with a baud rate of `115200`.
+
+# Build from Sources
+1. install PlatformIO Core CLI toolset 
+    * https://platformio.org/install/cli
+    * Easiest is just one of the following:
+        * `pip install -U platformio`
+        * `homebrew install platformio`
+2. Clone this repo
+    1. cd into the lib directory
+    2. git clone `git@github.com:shaneapowell/IotWebConf.git`
+        * check out the branch `git checkout -b origin/AddStateCallback`
+    3. git clone `git@github.com:shaneapowell/arduino-slack-api.git`
+        * check out the branch `git checkout -b origin/feature/AddGetCurrentStatusCall`
+3. `pio lib update`
+4. `pio run --target clean`
+4. `pio run --target upload` 
+
+## Alter Boot-Splash
+1. Start with the above build from sources.
+2. The boot image is hard-coded in the `Adafruit_I2C_SH1106.cpp` file.
+3. `static uint8_t buffer[BUFFER_SIZE]` contains the image.
+4. Obtain an image exactly 128x64 px in size.
+5. User an online image converter like (https://lvgl.io/tools/imageconverter) to create a new default buffer array.
+
+## Wipe Flash Completely to start fresh
+`pio run --target erase`
+
+# Flash new Firmearer
+1. Download latest `firmware.bin` file from here.
+2. Open web browser to config page.
+3. Scroll to bottom to find "firmware" update link.
+4. Verify firmare version `before` and `after` update.
+5. Upload new firmware. There is currently no filesystem update.
 
 # License
 MIT license

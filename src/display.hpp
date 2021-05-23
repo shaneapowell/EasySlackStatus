@@ -3,62 +3,13 @@
  By Shane Powell <shaneapowell@hotmail.com>
  Inspired by "Slack Status Updater ESP8266" by Becky Stern
 
- ======
- 
- Notes:
-  - OLED Menu
-    - Main screen is simply the "status" screen.  It has a list of available status lines, that can be
-        rotary scrolled up and down.  Once on the one you want, single "click" to send. The line also has the default 
-        timeout minutes.   eg.. "
-            - Lunch      (30m)
-            - Doctor      (1h)
-            - Vacation    
-    - Main screen has at the top, your current status at the left.  And the Connection status icon at the right.
-    - The Connection status icon is 1 of 3 things.  No Wifi; Wifi but no Slack; Wifi and Slack;
-    - Add a dedicated "settings" tactile button. This allows into the config menu.
-    - Selecting a Status
-        - single click sets that status, and the default icon and timeout.
-        - Long Press goes to modify before send status.   Allowing selection of different icon and timeout before sending.
-
-    MENU Items
-    - Status
-        - Available
-        - Coffee        (15m)
-        - Lunch         (45m)
-        - Meeting       (1h)
-        - Unavailable   (30m)
-        - Doctor        (1.5h)
-        - Walking Dog   (30m)
-        - Vacation
-    - Config
-        - WiFi Setup/Info
-            - Connect
-            - Back
-        - On/Off web-configurator & URL
-            -
-        - Firmware
-    
-
-    Wifi Setup
-
-    Web Configurator
-      - Enter your Slack Token
-      - Update Fingerprint
-      - Modify list of status entries
-
-    Status Entries
-        - Status Title
-        - Icon
-        - Default Timeout
- 
-  **************************************************************************/
+ **************************************************************************/
 #ifndef __LCD_HPP__
 #define __LCD_HPP__
 
 #include <Wire.h>
 #include "lcd/Adafruit_I2C_SH1106.h"
-
-#include "status.h"
+#include "main.h"
 
 #define PIN_OLED_DATA           D2 
 #define PIN_OLED_CLOCK          D1 
@@ -85,7 +36,9 @@
 #define TS1_LINE4 56
 
 extern NTPClient _ntpClient;
-char STATUS_DISPLAY_NAME[] = "---";
+char STATUS_DISPLAY_BLANK[] = "---";
+char STATUS_DISPLAY_ERROR[] = "ERROR";
+char STATUS_DISPLAY_FETCHING[] = "...";
 
 typedef enum 
 {
@@ -111,10 +64,12 @@ class LCD
 {
 
 private:
-    //Adafruit_SSD1306 mDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, -1);
     Adafruit_I2C_SH1106 _display;
-    SlackProfile _currentProfile;
-    //State *_state;
+    ArduinoSlack* _slack;
+
+    String _slackDisplayName = STATUS_DISPLAY_BLANK; 
+    String _slackStatusText = STATUS_DISPLAY_BLANK;
+    bool _slackError = false;
 
     bool _isDirty = false;
     SCREEN _currentScreen = SCREEN_BOOT;
@@ -127,6 +82,7 @@ private:
 
     int _userSetExpiryInMinutes = -1;
     
+    long _lastProfileFetchMillis = -1;
 
     /*************************************************
      *
@@ -161,8 +117,6 @@ private:
 
     }
 
-
-    
     /***********************************************/
     void renderMainScreen()
     {
@@ -174,17 +128,42 @@ private:
         _display.setTextColor(WHITE); 
 
         /* Status */
-        String status = "ERROR";
-        if (!_currentProfile.error)
+        String status = STATUS_DISPLAY_ERROR;
+        if (!_slackError)
         {
-            status = _currentProfile.statusText;
-            char* name = strtok(_currentProfile.displayName, " ");
-            if (name != NULL)
+            /* Status Output */
+            status = _slackStatusText;
+            if (status.length() == 0)
             {
+                status = STATUS_DISPLAY_BLANK;
+            }
+            else 
+            {
+                /* Make sure the status fits within our 10 char limit */
+                if (status.length() > SLACK_STATUS_CHARS_MAX)
+                {
+                    status = status.substring(0, SLACK_STATUS_CHARS_MAX);
+                }
+            }
+
+            /* Make sure the "name" fits within our 10char limit. */
+            String name = _slackDisplayName;
+            if (name != NULL && name.length() > 0)
+            {
+                /* First workd/name only */
+                int ndx = name.indexOf(' ');
+                if (ndx != -1) 
+                {
+                    name = name.substring(0, ndx);
+                }
+
+                name = name.substring(0, SLACK_STATUS_CHARS_MAX);
                 _display.setCursor(0, CURSOR_STATUS_BAR);
                 _display.print(name);
             }
-        }
+        } 
+        
+        /* Render the status line, it's our current status, or error */
         int x = _display.width() - (status.length() * 6);
         _display.setCursor(x, CURSOR_STATUS_BAR);
         _display.print(status);
@@ -233,7 +212,7 @@ private:
         _display.print(status.title);
 
         _display.setCursor(0, CURSOR_LINE2);
-        _display.print("Expire In");
+        _display.print(F("Expire In"));
 
         char expiryLine[32];
         sprintf(expiryLine, "< %02d min >", _userSetExpiryInMinutes);
@@ -253,14 +232,14 @@ private:
 
 
         _display.setCursor(0, TS1_LINE0);
-        _display.print("WiFi:");
+        _display.print(F("WiFi:"));
         _display.setCursor(0, TS1_LINE1);
         _display.print(WiFi.SSID());
 
         if (!WiFi.isConnected())
         {
             _display.setCursor(0, TS1_LINE2);
-            _display.print("Connecting...");
+            _display.print(F("Connecting..."));
         }
         else if (WiFi.localIP().isSet())
         {
@@ -281,7 +260,7 @@ private:
         else
         {
             _display.setCursor(0, TS1_LINE2);
-            _display.print("Obtaining IP...");
+            _display.print(F("Obtaining IP..."));
         }
 
     }
@@ -294,11 +273,11 @@ private:
         _display.setTextColor(WHITE);
 
         _display.setCursor(0, TS1_LINE0);
-        _display.print("Configure:");
+        _display.print(F("Configure:"));
         _display.setCursor(0, TS1_LINE1);
-        _display.print("Connect Phone or");
+        _display.print(F("Connect Phone or"));
         _display.setCursor(0, TS1_LINE2);
-        _display.print("Laptop to this WiFi");
+        _display.print(F("Laptop to this WiFi"));
         _display.setCursor(18, TS1_LINE3);
         _display.print(WiFi.softAPSSID());
         _display.setCursor(0, TS1_LINE4);
@@ -311,20 +290,15 @@ public:
     
 
     /***********************************************/
+    void setSlack(ArduinoSlack* slack)
+    {
+        _slack = slack;
+    }
+
+    /***********************************************/
     void setup() 
     {
 
-    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    // if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
-    //   Serial.println(F("SSD1306 allocation failed"));
-    //   for (;;); // Don't proceed, loop forever
-    // }
-
-        _currentProfile.displayName = STATUS_DISPLAY_NAME;
-        _currentProfile.statusText = STATUS_DISPLAY_NAME;
-        _currentProfile.statusEmoji = NULL;
-        _currentProfile.statusExpiration = 0;
-        _currentProfile.error = false;
         _display.init();
         _display.setTextWrap(false);
 
@@ -358,6 +332,21 @@ public:
             renderScreen();
         }
 
+
+        /* Every minute, query the current slack status  */
+        if (_lastProfileFetchMillis == -1 || millis() - _lastProfileFetchMillis > (1000 * 60))
+        {
+            if (_currentScreen == SCREEN_MAIN)
+            {
+                Serial.println(F("Fetching Current Slack Status"));
+                _slackStatusText = STATUS_DISPLAY_FETCHING;
+                renderScreen();
+                SlackProfile profile = _slack->getCurrentStatus();
+                setSlackProfile(profile);
+                _lastProfileFetchMillis = millis();
+            }
+        }
+
     }
 
     /***********************************************/
@@ -369,34 +358,28 @@ public:
     /********************************************/
     void setSlackProfile(SlackProfile profile)
     {
-        _currentProfile = profile;
+        _lastProfileFetchMillis = millis();
+
+        _slackDisplayName = profile.displayName;
+        _slackStatusText = profile.statusText;
+        _slackError = profile.error;
         
         if (!profile.error)
         {
-            Serial.println("--------- Profile ---------");
-
-            Serial.print("Display Name: ");
-            Serial.println(profile.displayName);
-
-            Serial.print("Status Text: ");
-            Serial.println(profile.statusText);
-
-            Serial.print("Status Emoji: ");
-            Serial.println(profile.statusEmoji);
-
-            Serial.print("Status Expiration: ");
-            Serial.println(profile.statusExpiration);
-
-            Serial.println("------------------------");
+            Serial.println(F("--------- Profile ---------"));
+            Serial.print(F("Display Name: ["));     Serial.print(profile.displayName); Serial.println(F("]"));
+            Serial.print(F("Status Text: ["));      Serial.print(profile.statusText);  Serial.println(F("]"));
+            Serial.print(F("Status Emoji: ["));     Serial.print(profile.statusEmoji); Serial.println(F("]"));
+            Serial.print(F("Status Expiration: ")); Serial.println(profile.statusExpiration);
+            Serial.println(F("------------------------"));
         } 
         else 
         {
-            Serial.println("error getting profile");
+            Serial.println(F("error getting profile"));
         }
 
         _isDirty = true;
     }
-
 
     /***********************************************/
     void setScreen(SCREEN screen)
@@ -468,7 +451,7 @@ public:
     }
 
     /***********************************************/
-    void onRotaryClick(ArduinoSlack *slack) 
+    void onRotaryClick() 
     {
         
         SlackStatus status = getHighlightedSlackStatus();
@@ -500,7 +483,7 @@ public:
             expireUTC += (expireInMinute * 60);
         }
         
-        SlackProfile profile = slack->setCustomStatus(status.title, status.icon, expireUTC);
+        SlackProfile profile = _slack->setCustomStatus(status.title, status.icon, expireUTC);
         setSlackProfile(profile);
 
         _isDirty = true;

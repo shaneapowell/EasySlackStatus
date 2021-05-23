@@ -1,0 +1,6 @@
+[submodule "lib/arduino-slack-api"]
+	path = lib/arduino-slack-api
+	url = git@github.com:shaneapowell/arduino-slack-api.git
+[submodule "lib/IotWebConf"]
+	path = lib/IotWebConf
+	url = git@github.com:shaneapowell/IotWebConf.git

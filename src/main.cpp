@@ -7,55 +7,10 @@
  
  This code is intended to use with the following hardware: 
  Wemos D1
- 128x64 pixel oled display
+ 128x64 pixel SH1106 oled display
  Rotary encoder with push button
 
- Notes:
-  - OLED Menu
-    - Main screen is simply the "status" screen.  It has a list of available status lines, that can be
-        rotary scrolled up and down.  Once on the one you want, single "click" to send. The line also has the default 
-        timeout minutes.   eg.. "
-            - Lunch      (30m)
-            - Doctor      (1h)
-            - Vacation    
-    - Main screen has at the top, your current status at the left.  And the Connection status icon at the right.
-    - The Connection status icon is 1 of 3 things.  No Wifi; Wifi but no Slack; Wifi and Slack;
-    - Add a dedicated "settings" tactile button. This allows into the config menu.
-    - Selecting a Status
-        - single click sets that status, and the default icon and timeout.
-        - Long Press goes to modify before send status.   Allowing selection of different icon and timeout before sending.
-
-    MENU Items
-    - Status
-        - Clear
-        - Available
-        - Coffee        (15m)
-        - Lunch         (45m)
-        - Meeting       (1h)
-        - Unavailable   (30m)
-        - Doctor        (1.5h)
-        - Walking Dog   (30m)
-        - Vacation
-    - Config
-        - WiFi Setup
-        - On/Off web-configurator
-        - Current Wifi IP address
-        - URL to web-configurator
-    
-
-    Wifi Setup
-
-    Web Configurator
-      - Enter your Slack Token
-      - Update Fingerprint
-      - Modify list of status entries
-
-    Status Entries
-        - Status Title
-        - Icon
-        - Default Timeout
- 
-  **************************************************************************/
+ **************************************************************************/
 
 #include <Time.h>
 #include <Timezone.h>
@@ -76,12 +31,8 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <string.h>
 
-#include "status.h"
 #include "main.h"
 #include "display.hpp"
-
-#define SLACK_ACCESS_FINGERPRINT "C3 CC ED 77 87 19 6D E7 76 5E AA A7 3D 67 7E CA 95 D2 46 E2"
-#define MAX_SLACK_TOKEN_LENGTH 128
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
 #define IOTWEB_CONFIG_VERSION  APP_VERSION_NAME
@@ -92,12 +43,12 @@
 #define ROTARY_STEPS_PER_CLICK   4   
 
 
-const char* _iotThingName = "EasySlackStatus";
-const char* _iotWifiInitialApPassword = "12345678";
-const char* _slackTokenLabel = "Slack-Token";
-const char* _statusLabel = "Status";
-const char* _iconLabel = "Icon (must include wrapping \':\')";
-const char* _expireLabel = "Default Expire in Minutes";
+const char* _iotThingName               = "EasySlackStatus";
+const char* _iotWifiInitialApPassword   = "12345678";
+const char* _slackTokenLabel            = "Slack-Token";
+const char* _statusLabel                = "Status";
+const char* _iconLabel                  = "Icon (must include wrapping \':\')";
+const char* _expireLabel                = "Default Expire in Minutes";
 
 WiFiUDP _ntpUDP;
 NTPClient _ntpClient(_ntpUDP, "us.pool.ntp.org"); /* Used extern in display.cpp  */
@@ -117,7 +68,6 @@ WiFiEventHandler _wifiDisconnectedHandler;
 
 char _slackAccessToken[MAX_SLACK_TOKEN_LENGTH] = "xoxp-xxxx";
 WiFiClientSecure _wifiClient;
-ArduinoSlack* _slack;
 
 ESPRotary _rotary = ESPRotary(PIN_ROTARY_CLK, PIN_ROTARY_DT, ROTARY_STEPS_PER_CLICK);
 Button2 _rotaryButton = Button2(PIN_ROTARY_BUTTON);
@@ -159,17 +109,11 @@ void onIotWebStateChanged(byte oldState, byte newState)
 
 }
 
-/***********************************************/ 
-void onIotWebConfigSaved()
-{
-  Serial.println("Configuration was updated.");
-}
-
 
 /***********************************************/ 
 bool onIotWebSoftAPSetupRequest(const char* apName, const char* password)
 {
-    Serial.println(">>> AP Connection");
+    Serial.println(F(">>> AP Connection"));
 //    Display.onWifiDiconnected();
     return WiFi.softAP(apName, password);
 }
@@ -177,7 +121,7 @@ bool onIotWebSoftAPSetupRequest(const char* apName, const char* password)
 /***********************************************/ 
 void onIotWebWifiConnectionRequest(const char* ssid, const char* password)
 {
-    Serial.println(">>> WiFi Connection");
+    Serial.println(F(">>> WiFi Connection"));
     WiFi.softAPdisconnect();
     WiFi.begin(ssid, password);
 //    Display.onWifiConnecting();
@@ -194,39 +138,19 @@ void onWifiDisconnect(const WiFiEventStationModeDisconnected& event){
 	_ntpClient.end();
 }
 
-// /***********************************************/ 
-// void onWifiGotIP(const WiFiEventStationModeGotIP& event){
-// 	Serial.print(F("Wifi Got IP: ")); Serial.println(event.ip);
-//     Serial.println(_iotWebConf.getState());
-// 	Display.onWifiGotIp();
-// }
-
-
 /***********************************************
  * on Rotate
  ***********************************************/
 void onRotate(ESPRotary& r) {
-    int position = r.getPosition();
-    Serial.println(position);
-    Serial.println(r.directionToString(r.getDirection()));
     Display.onRotaryInput(r.getDirection() == RE_RIGHT);
-//    showNewStatus(position);    
 }
-
-// /***********************************************
-//  * on left or right rotation
-//  ***********************************************/
-// void onRotateDirection(ESPRotary& r) {
-//     Serial.println(r.directionToString(r.getDirection()));
-//     _lcd.onRotaryInput(r.getDirection() == RE_LEFT);
-// }
 
 /***********************************************
  * single click
  ***********************************************/
 void onRotaryClick(Button2& btn) 
 {
-    Display.onRotaryClick(_slack);
+    Display.onRotaryClick();
 }
 
 /***********************************************
@@ -242,7 +166,6 @@ void onRotaryDoubleClick(Button2& btn)
  ***********************************************/
 void onRotaryLongClick(Button2& btn) 
 {
-    Serial.println(F("Rotary Long Click!"));
     Display.onRotaryLongClick();
 }
 
@@ -282,13 +205,7 @@ void setup() {
 
     delay(10);
 
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  // if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
-  //   Serial.println(F("SSD1306 allocation failed"));
-  //   for (;;); // Don't proceed, loop forever
-  // }
-
-    Serial.println("Setting Up LCD");
+    Serial.println(F("Setting Up LCD"));
     Wire.begin();
     Wire.setClock(400000L);
     delay(100);
@@ -312,7 +229,6 @@ void setup() {
     _iotWebConf.skipApStartup();
     _iotWebConf.setStatusPin(LED_BUILTIN);
     _iotWebConf.setConfigPin(PIN_ROTARY_BUTTON);
-    _iotWebConf.setConfigSavedCallback(&onIotWebConfigSaved);
 
     /* Slack Token */
     _iotWebConf.addSystemParameter( new IotWebConfTextParameter(_slackTokenLabel, 
@@ -364,6 +280,7 @@ void setup() {
         _iotWebConf.addParameterGroup(paramGroup);
     }
 
+    /* Firmware Updater */
     _iotWebConf.setupUpdateServer(
         [](const char* updatePath) { _httpUpdater.setup(&_server, updatePath); },
         [](const char* userName, char* password) { _httpUpdater.updateCredentials(userName, password); });
@@ -384,7 +301,9 @@ void setup() {
         Serial.println(F("finger print set failure"));
     }
 
-    _slack = new ArduinoSlack(_wifiClient, _slackAccessToken);
+    /* Finally, confiure the slack client and pass it to the display */
+    ArduinoSlack* slack = new ArduinoSlack(_wifiClient, _slackAccessToken);
+    Display.setSlack(slack);
 
 }
 
@@ -397,23 +316,13 @@ void loop()
 	{
 		/* DateTime, Sync fast until both ntptime and time are equal */
 		setSyncProvider(getNtpTime);
-		Serial.println("DATE TIME SYNCED");
+		Serial.println(F("DATE TIME SYNCED"));
 	}
 
     _iotWebConf.doLoop();
     _rotary.loop();
     _rotaryButton.loop();
     Display.loop();
-
-
-    // static bool itsDone = false;
-    // if (!itsDone && millis() > 15 * 1000 )
-    // {
-    //     itsDone = true;
-    //     Serial.println(">>> get status");
-    //     SlackProfile profile = _slack.getCurrentStatus();
-    //     Serial.print(">>> "); Serial.println(profile.displayName);
-    // }
 
 }
 
