@@ -1,6 +1,8 @@
 # ESP8266 Slack Status Updater
 Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack-Status-Updater-With-ESP8266/) by Becky Stern
 
+![EasySlackStatus](doc/easyslackstatus.jpg)
+
 # Hardware 
 - Wemos D1 Mini
 - 128x64 pixel SH1106 oled display
