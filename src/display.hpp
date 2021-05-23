@@ -244,17 +244,15 @@ private:
         else if (WiFi.localIP().isSet())
         {
             _display.setCursor(0, TS1_LINE2);
-            String url = WiFi.localIP().toString();
-            _display.print(url);
-
-            _display.setCursor(0, TS1_LINE3);
-            url = "http://" + url + "/";
-            _display.print(url);
+            _display.print(WiFi.localIP().toString());
 
             char time[32];
             sprintf(time, "%02d/%02d/%02d %02d:%02d:%02d%s", year(), month(), day(), hourFormat12(), minute(), second(), (isPM() ? "pm" : "am"));
-            _display.setCursor(0, TS1_LINE4);
+            _display.setCursor(0, TS1_LINE3);
             _display.print(time);
+
+            _display.setCursor(0, TS1_LINE4);
+            _display.print(currentTZName);
 
         } 
         else

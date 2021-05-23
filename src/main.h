@@ -3,7 +3,13 @@
 
 #include <Time.h>
 
-    PROGMEM const char* APP_VERSION_NAME = "v1.0.5";
+#define APP_VESION_MAJOR 1
+#define APP_VESION_MINOR 0
+#define APP_VESION_PATCH 0
+
+
+PROGMEM const char APP_VERSION_CODE[] = { '0'+APP_VESION_MAJOR, '0'+APP_VESION_MINOR, '0'+APP_VESION_PATCH, 0 };
+PROGMEM const char APP_VERSION_NAME[] = {'v', '0'+APP_VESION_MAJOR, '.', '0'+APP_VESION_MINOR, '.', '0'+APP_VESION_PATCH, 0};
 
 time_t getNtpTime();
 
@@ -28,7 +34,6 @@ typedef struct
     char expireInMinutes[SLACK_STATUS_EXPIRE_CHARS_MAX+1];
 } SlackStatus;
 
-/* Max is 10 chars */
 SlackStatus _slackStatusList[SLACK_STATUS_COUNT] = 
 {
     {"Available",   ":white_check_mark:",   "0"},
@@ -47,5 +52,6 @@ SlackStatus _slackStatusList[SLACK_STATUS_COUNT] =
     {"---",         ":O:",                  "0"},
     {"---",         ":O:",                  "0"}
 };
+
 
 #endif

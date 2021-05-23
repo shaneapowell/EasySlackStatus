@@ -32,20 +32,21 @@
 #include <string.h>
 
 #include "main.h"
+#include "tz.h"
 #include "display.hpp"
-
-// -- Configuration specific key. The value should be modified if config structure was changed.
-#define IOTWEB_CONFIG_VERSION  APP_VERSION_NAME
 
 #define PIN_ROTARY_DT           D7
 #define PIN_ROTARY_CLK          D6
 #define PIN_ROTARY_BUTTON       D5
 #define ROTARY_STEPS_PER_CLICK   4   
 
+/* Must be a string no more than 4 chars.  Only alter when the config changes  */
+#define IOT_WEB_CONFIG_VERSION_CODE  "0001"
 
 const char* _iotThingName               = "EasySlackStatus";
 const char* _iotWifiInitialApPassword   = "12345678";
 const char* _slackTokenLabel            = "Slack-Token";
+const char* _tzLabel                    = "TimeZone";
 const char* _statusLabel                = "Status";
 const char* _iconLabel                  = "Icon (must include wrapping \':\')";
 const char* _expireLabel                = "Default Expire in Minutes";
@@ -53,13 +54,9 @@ const char* _expireLabel                = "Default Expire in Minutes";
 WiFiUDP _ntpUDP;
 NTPClient _ntpClient(_ntpUDP, "us.pool.ntp.org"); /* Used extern in display.cpp  */
 
-TimeChangeRule _usCDT = {"CDT", Second, Sun, Mar, 2, -300};  //UTC - 5 hours
-TimeChangeRule _usCST = {"CST", First, Sun, Nov, 2, -360};   //UTC - 6 hours
-Timezone _usCentral(_usCDT, _usCST);
-
 DNSServer _dnsServer;
 WebServer _server(80);
-IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword, IOTWEB_CONFIG_VERSION);
+IotWebConf _iotWebConf(_iotThingName, &_dnsServer, &_server, _iotWifiInitialApPassword, IOT_WEB_CONFIG_VERSION_CODE);
 ESP8266HTTPUpdateServer _httpUpdater;
 
 // WiFiEventHandler _wifiGotIPHandler;
@@ -193,9 +190,21 @@ void handleWebRoot()
  ********************************************/
 time_t getNtpTime()
 {
-	time_t utcNow = _ntpClient.getEpochTime();
-	time_t centralNow = _usCentral.toLocal(utcNow);
-	return centralNow;
+    Timezone tz = TIMEZONES[0];
+
+    /* Find the matching TZ */
+    for (int index = 0; index < TZ_COUNT; index++)
+    {
+        if (strcmp(currentTZName, TZ_NAMES[index]) == 0)
+        {
+            tz = TIMEZONES[index];
+            break;
+        }
+    }
+
+    time_t utcNow = _ntpClient.getEpochTime();
+	time_t now = tz.toLocal(utcNow);
+    return now;
 }
 
 /***********************************************/
@@ -236,6 +245,18 @@ void setup() {
                                                                 _slackAccessToken,
                                                                 MAX_SLACK_TOKEN_LENGTH,
                                                                 _slackAccessToken));
+
+    /* TimeZone */
+    _iotWebConf.addSystemParameter(new IotWebConfSelectParameter(_tzLabel,
+                                                                _tzLabel,
+                                                                currentTZName,
+                                                                TZ_NAME_MAX,
+                                                                (char*)TZ_NAMES,
+                                                                (char*)TZ_NAMES,
+                                                                TZ_COUNT,
+                                                                TZ_NAME_MAX,
+                                                                TZ_NAMES[0]));
+
 
     /* Add each slack status override to the conf. Create on the heap, NOT the stack */
     char  buff[48];
@@ -315,8 +336,9 @@ void loop()
 	if (timeStatus() == timeNotSet && _ntpClient.getEpochTime() > 946688461) /* Jan 1 2000 */
 	{
 		/* DateTime, Sync fast until both ntptime and time are equal */
-		setSyncProvider(getNtpTime);
-		Serial.println(F("DATE TIME SYNCED"));
+		Serial.print(F("DATE TIME SYNCED with TZ "));
+        Serial.println(currentTZName);
+        setSyncProvider(getNtpTime);
 	}
 
     _iotWebConf.doLoop();

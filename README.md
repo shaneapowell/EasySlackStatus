@@ -8,6 +8,14 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
 - 128x64 pixel SH1106 oled display
 - Rotary encoder with push button
 
+# Features
+- 100% OpenSource MIT License.
+- Set your current status.
+- Set an Expiring (in x minutes) status.
+- Polls curent status every 60 seconds.
+- Configure your own status and icons.
+- Room for up to 15 unique statuss.
+
 # Obtain a unique to you Slack-Token
 In order for the status to be correctly sent to your account, you must first obtain a unique `Slack-Token`.
 
@@ -27,6 +35,7 @@ Ask @Shane.Powell for help getting a slack token.
     * `WiFi SSID` = The WiFi SSID/Name of your home wifi to connect to.
     * `WiFi Password` = Your home wifi password.
     * `Slack Token` = Your personal slack-access token (see below). Must be rebooted after setting this.
+    * `TZ` = The Timezone you are in.  Curently only support for short list of TZ. To add more, just update the list of TZs in the code and submit a PR.  A reboot will be necessary for this to take affect.
     * `Status 1-15` = The list of default status selections.  You can modify these later on using your computer after connecting to your local WiFi.  See below for more info.
 5. Disconnect from the devices WiFi, it should trigger the device to try and connect to your WiFi.
 6. If it all worked, it should present the list of status to choose from.
@@ -85,32 +94,33 @@ Ask @Shane.Powell for help getting a slack token.
         * `pip install -U platformio`
         * `homebrew install platformio`
 2. Clone this repo
-    1. cd into the lib directory
-    2. git clone `git@github.com:shaneapowell/IotWebConf.git`
-        * check out the branch `git checkout -b origin/AddStateCallback`
-    3. git clone `git@github.com:shaneapowell/arduino-slack-api.git`
-        * check out the branch `git checkout -b origin/feature/AddGetCurrentStatusCall`
-3. `pio lib update`
-4. `pio run --target clean`
-4. `pio run --target upload` 
+3. Init Submodules
+    * `git submodule update --init --recursive`
+    * This will pull down the current branches in both `lib/IotWebconf` and `lib/arduino-slack-api` submodules.
+4. Update Submodules as needed with
+    * `git submodule update --recursive --remote`
+5. `pio lib update`  (optional, but ensures the recent libs are fetched now)
+6. `pio run --target clean`
+7. `pio run`
+7. `pio run --target upload` 
 
 ## Alter Boot-Splash
 1. Start with the above build from sources.
 2. The boot image is hard-coded in the `Adafruit_I2C_SH1106.cpp` file.
 3. `static uint8_t buffer[BUFFER_SIZE]` contains the image.
 4. Obtain an image exactly 128x64 px in size.
-5. User an online image converter like (https://lvgl.io/tools/imageconverter) to create a new default buffer array.
+5. Use an online image converter like (https://lvgl.io/tools/imageconverter) to create a new default buffer array.
 
-## Wipe Flash Completely to start fresh
+## Wipe D1 Minit Flash Completely to start totally fresh
 `pio run --target erase`
 
-# Flash new Firmearer
-1. Download latest `firmware.bin` file from here.
+# Flash new Firmware
+1. Download latest `firmware/vX.Y.Z.bin` file from here.
 2. Open web browser to config page.
-3. Scroll to bottom to find "firmware" update link.
+3. Scroll to bottom to find `Firmware Update` link.
 4. Verify firmare version `before` and `after` update.
-5. Upload new firmware. There is currently no filesystem update.
+5. Upload new firmware.  Takes about 30 seconds.  Device should reboot automatically. There is currently no filesystem update needed.
 
 # License
-MIT license
+[MIT license](license.txt)
  
