@@ -48,7 +48,7 @@ const char* _iotWifiInitialApPassword   = "12345678";
 const char* _slackTokenLabel            = "Slack-Token";
 const char* _tzLabel                    = "TimeZone";
 const char* _statusLabel                = "Status";
-const char* _iconLabel                  = "Icon (must include wrapping \':\')";
+const char* _iconLabel                  = "Icon";
 const char* _expireLabel                = "Default Expire in Minutes";
 
 WiFiUDP _ntpUDP;

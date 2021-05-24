@@ -36,15 +36,15 @@ typedef struct
 
 SlackStatus _slackStatusList[SLACK_STATUS_COUNT] = 
 {
-    {"Available",   ":white_check_mark:",   "0"},
+    {"Available",   ":here:",               "0"},
     {"Coffee",      ":coffee:",             "15"},
     {"Lunch",       ":hamburger:",          "60"},
     {"Meeting",     ":calendar:",           "60"},
-    {"OOO",         ":warning:",            "0"},
+    {"OOO",         ":away:",               "0"},
     {"Offline",     ":x:",                  "0"},
-    {"Walk Dog",    ":dog2:",               "30"},
+    {"Walk Dog",    ":walking-the-dog:",    "30"},
     {"On a Break",  ":hourglass:",          "30"},
-    {"Very Busy",   ":lightning:",          "120"},
+    {"Very Busy",   ":heads-down:",         "120"},
     {"Doctor",      ":stethoscope:",        "90"},
     {"PTO",         ":palm_tree:",          "0"},
     {"Sleeping",    ":sleeping:",           "0"},
