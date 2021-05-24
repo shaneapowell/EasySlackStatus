@@ -17,6 +17,8 @@
 #define OLED_SCREEN_WIDTH       128 
 #define OLED_SCREEN_HEIGHT      64 
 
+/* 60 minutes */
+#define SCREEN_OFF_INTERVAL_MS (60 * 60 * 1000)
 
 /* Text Size 1 */
 #define STATUS_BAR_HEIGHT 10
@@ -83,12 +85,14 @@ private:
     int _userSetExpiryInMinutes = -1;
     
     long _lastProfileFetchMillis = -1;
+    long _lastUserInteractionMillis = -1;
 
     /*************************************************
      *
      ************************************************/ 
     void renderScreen() 
     {
+
         
         switch(_currentScreen)
         {
@@ -111,6 +115,13 @@ private:
             case SCREEN_AP:
                 renderAPScreen();
             break;
+        }
+
+
+        /* Screen Saver */
+        if (millis() > _lastUserInteractionMillis + SCREEN_OFF_INTERVAL_MS)
+        {
+            _display.fillScreen(BLACK);
         }
 
         _display.flushDisplay();
@@ -415,7 +426,8 @@ public:
     /***********************************************/
     void onRotaryInput(boolean increase) 
     {
-        
+        _lastUserInteractionMillis = millis();
+
         /* MAIN screen   */
         if (_currentScreen == SCREEN_MAIN)
         {
@@ -451,6 +463,7 @@ public:
     /***********************************************/
     void onRotaryClick() 
     {
+        _lastUserInteractionMillis = millis();
         
         SlackStatus status = getHighlightedSlackStatus();
         int expireInMinute = 0;
@@ -490,6 +503,8 @@ public:
     /***********************************************/
     void onRotaryDoubleClick()
     {
+        _lastUserInteractionMillis = millis();
+
         switch(_currentScreen)
         {
             default:
@@ -509,6 +524,8 @@ public:
     /***********************************************/
     void onRotaryLongClick()
     {
+        _lastUserInteractionMillis = millis();
+
         switch (_currentScreen)
         {
             default:

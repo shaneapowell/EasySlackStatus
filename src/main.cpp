@@ -111,7 +111,6 @@ void onIotWebStateChanged(byte oldState, byte newState)
 bool onIotWebSoftAPSetupRequest(const char* apName, const char* password)
 {
     Serial.println(F(">>> AP Connection"));
-//    Display.onWifiDiconnected();
     return WiFi.softAP(apName, password);
 }
 
@@ -121,7 +120,6 @@ void onIotWebWifiConnectionRequest(const char* ssid, const char* password)
     Serial.println(F(">>> WiFi Connection"));
     WiFi.softAPdisconnect();
     WiFi.begin(ssid, password);
-//    Display.onWifiConnecting();
 }
 
 /***********************************************/ 
@@ -179,7 +177,8 @@ void handleWebRoot()
     }
     String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
     s += "<title>IotWebConf 01 Minimal</title></head><body>";
-    s += "Go to <a href='config'>Settings Page</a> to change settings.";
+    s += "Go to <a href='config'>Settings Page</a> to change settings.<br><br>";
+    s += APP_VERSION_NAME;
     s += "</body></html>\n";
 
     _server.send(200, "text/html", s);
@@ -332,7 +331,13 @@ void setup() {
 /***********************************************/
 void loop() 
 {
-    _ntpClient.update();
+
+
+    if (WiFi.localIP().isSet())
+    {
+        _ntpClient.update();
+    }
+
 	if (timeStatus() == timeNotSet && _ntpClient.getEpochTime() > 946688461) /* Jan 1 2000 */
 	{
 		/* DateTime, Sync fast until both ntptime and time are equal */
@@ -340,7 +345,6 @@ void loop()
         Serial.println(currentTZName);
         setSyncProvider(getNtpTime);
 	}
-
     _iotWebConf.doLoop();
     _rotary.loop();
     _rotaryButton.loop();

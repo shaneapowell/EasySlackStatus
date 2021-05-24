@@ -14,7 +14,8 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
 - Set an Expiring (in x minutes) status.
 - Polls curent status every 60 seconds.
 - Configure your own status and icons.
-- Room for up to 15 unique statuss.
+- Room for up to 15 unique status.
+- ScreenSaver triggers after 60 minutes of no input.  Simply turn the rotary dial to wake back up.
 
 # Obtain a unique to you Slack-Token
 In order for the status to be correctly sent to your account, you must first obtain a unique `Slack-Token`.
