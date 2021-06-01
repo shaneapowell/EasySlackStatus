@@ -84,8 +84,8 @@ private:
 
     int _userSetExpiryInMinutes = -1;
     
-    long _lastProfileFetchMillis = -1;
-    long _lastUserInteractionMillis = -1;
+    unsigned long _lastProfileFetchMillis = 0;
+    unsigned long _lastUserInteractionMillis = 0;
 
     /*************************************************
      *
@@ -343,7 +343,7 @@ public:
 
 
         /* Every minute, query the current slack status  */
-        if (_lastProfileFetchMillis == -1 || millis() - _lastProfileFetchMillis > (1000 * 60))
+        if (_lastProfileFetchMillis == 0 || millis() - _lastProfileFetchMillis > (1000 * 60))
         {
             if (_currentScreen == SCREEN_MAIN)
             {

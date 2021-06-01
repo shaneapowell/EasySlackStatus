@@ -225,6 +225,7 @@ void setup() {
     _rotaryButton.setLongClickDetectedRetriggerable(false);
     _rotaryButton.setLongClickTime(1000);
     _rotaryButton.setDoubleClickHandler(onRotaryDoubleClick);
+    _rotaryButton.setDoubleClickTime(400);
 
     _wifiConnectedHandler = WiFi.onStationModeConnected(onWifiConnected);
     // _wifiGotIPHandler = WiFi.onStationModeGotIP(onWifiGotIP);
@@ -327,6 +328,7 @@ void setup() {
 
 }
 
+unsigned long memoryDumpMs = 0;
 
 /***********************************************/
 void loop() 
@@ -349,6 +351,7 @@ void loop()
     _rotary.loop();
     _rotaryButton.loop();
     Display.loop();
+
 
 }
 

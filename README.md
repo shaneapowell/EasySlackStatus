@@ -122,6 +122,38 @@ Ask @Shane.Powell for help getting a slack token.
 4. Verify firmare version `before` and `after` update.
 5. Upload new firmware.  Takes about 30 seconds.  Device should reboot automatically. There is currently no filesystem update needed.
 
+# Wiring
+
+## Wemos
+
+* Wemos-D2 -> OLED-SDA ()
+* Wemos-D1 -> OLED-SCL
+* Wemos-D5 -> Rotary-SW
+* Wemos-D6 -> Rotary-DT
+* Wemos-D7 -> Roatry-CLK
+* Wemos-3.3v -> OLED & Rotary VCC
+* Wemos-GND -> OLED & Rotary GND
+
+## 5-pin Connectors
+
+* White,Brown & Gray discarded if using 8pin connectors.
+* Red wire from 1 connector, added to other connector for 2 red wire outputs.
+* Black wire removed from 1st connector, used to add 2nd parallel ground wire to other connector.
+* Black pin moved from p2 to p1. Extra black wire added in parallel.
+
+
+* Wemos-3.3v -> **RED** -> VCC on both OLED and Rotary. Use red wire from other connect, add parallel here.
+* Wemos-D8 skipped Black Wire DePined (use to parallel ground on other black connector)
+* Wemos-D7 -> **Yellow** -> Rotary-CLK
+* Wemos-D6 -> **Blue** -> Rotary-DT
+* Wemos-D5 -> **Green** -> Rotary-SW
+
+* Wemos-Gnd -> Move black pin over to red pin. Add other black wirer in parallel.
+* Wemos-D4 skipped.
+* Wemos-D3 skipped depin wire
+* Wemos-D2 **Blue** -> OLED-SDA
+* Wemos-D1 **Green** -> OLED-SCL
+
 # License
 [MIT license](license.txt)
  
