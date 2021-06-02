@@ -328,8 +328,6 @@ void setup() {
 
 }
 
-unsigned long memoryDumpMs = 0;
-
 /***********************************************/
 void loop() 
 {
@@ -351,7 +349,6 @@ void loop()
     _rotary.loop();
     _rotaryButton.loop();
     Display.loop();
-
 
 }
 

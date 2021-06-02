@@ -369,12 +369,13 @@ public:
     {
         _lastProfileFetchMillis = millis();
 
-        _slackDisplayName = profile.displayName;
-        _slackStatusText = profile.statusText;
         _slackError = profile.error;
-        
-        if (!profile.error)
+
+        if (!_slackError)
         {
+            _slackDisplayName = profile.displayName;
+            _slackStatusText = profile.statusText;
+
             Serial.println(F("--------- Profile ---------"));
             Serial.print(F("Display Name: ["));     Serial.print(profile.displayName); Serial.println(F("]"));
             Serial.print(F("Status Text: ["));      Serial.print(profile.statusText);  Serial.println(F("]"));
