@@ -116,7 +116,7 @@ If your org already has a custom app created for this device, you might need to 
 2. The boot image is hard-coded in the `Adafruit_I2C_SH1106.cpp` file.
 3. `static uint8_t buffer[BUFFER_SIZE]` contains the image.
 4. Obtain an image exactly 128x64 px in size.
-5. Use an online image converter like (https://lvgl.io/tools/imageconverter) to create a new default buffer array.
+5. Use an online image converter like (https://javl.github.io/image2cpp/) to create a new default buffer array.
 
 ## Wipe D1 Minit Flash Completely to start totally fresh
 `pio run --target erase`
