@@ -3,10 +3,15 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
 
 ![EasySlackStatus](doc/easyslackstatus.jpg)
 
-# Hardware 
-- Wemos D1 Mini
-- 128x64 pixel SH1106 oled display
-- Rotary encoder with push button
+# Required Hardware 
+- Wemos D1 Mini [Amzon](https://www.amazon.com/gp/product/B081PX9YFV/)
+- 128x64 pixel SH1106 oled display [Amazon](https://www.amazon.com/gp/product/B08V97FYD2/)
+- Rotary encoder with push button [Amazon](https://www.amazon.com/gp/product/B07T3672VK/ref=ppx_yo_dt_b_search_asin_image?ie=UTF8&psc=1)
+    - If you can find a rotary encoder without the header pins, it will be easier to build.
+- 5-pin header wire [Amazon](https://www.amazon.com/gp/product/B0789F2Y1T/ref=ppx_yo_dt_b_asin_title_o09_s00?ie=UTF8&psc=1)
+    - I used these 8-pin and cut off 3 pins.
+- 3D Printed Housing [ThingiVerse TBA](https://www.thingiverse.com/thing:4879479)
+- 2x M2x6mm HexHead screws
 
 # Features
 - 100% OpenSource MIT License.
@@ -16,14 +21,15 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
 - Configure your own status and icons.
 - Room for up to 15 unique status.
 - ScreenSaver triggers after 60 minutes of no input.  Simply turn the rotary dial to wake back up.
+- Web Based Configuration.
 
 # Obtain a unique to you Slack-Token
 In order for the status to be correctly sent to your account, you must first obtain a unique `Slack-Token`.
 
 Original Insructions are here https://github.com/witnessmenow/arduino-slack-api#getting-auth-token-this-may-change
 
-Ask @Shane.Powell for help getting a slack token.
-
+Ask your Slack Admin for help getting a slack token.
+If your org already has a custom app created for this device, you might need to only add it to your slack account.
 
 # Initial Setup
 1. Plug in USB Power.  A fresh unconfigured device will automatically start up in **Access Point** mode.
@@ -122,19 +128,31 @@ Ask @Shane.Powell for help getting a slack token.
 4. Verify firmare version `before` and `after` update.
 5. Upload new firmware.  Takes about 30 seconds.  Device should reboot automatically. There is currently no filesystem update needed.
 
-# Wiring
+# Build your own
 
-## Wemos
+## Wemos D1
+Solder a pair of 5-pin headers to the Wemos D1. Orient the pins so they point up on the same side as the main ESP8266 module. For clearance inside the 3D printed case, remove the plastic header supports. 
 
-* Wemos-D2 -> OLED-SDA ()
-* Wemos-D1 -> OLED-SCL
-* Wemos-D5 -> Rotary-SW
-* Wemos-D6 -> Rotary-DT
-* Wemos-D7 -> Roatry-CLK
-* Wemos-3.3v -> OLED & Rotary VCC
-* Wemos-GND -> OLED & Rotary GND
+Solder between Pins `3.3v-D5` and `G-D1`.
+![WemosPins](doc/wemosPins.jpg)
+
+The colors below indicate the wire color used on the 5 pin header wires.
+
+### 5-pin
+* Wemos-GND -> OLED & Rotary GND **Black**
+* Wemos-D4 -> Not Used
+* Wemos-D3 -> Not Used
+* Wemos-D2 -> OLED-SDA **Blue**
+* Wemos-D1 -> OLED-SCL **Green**
+### 5-pin
+* Wemos-3.3v -> OLED & Rotary VCC **Red**
+* Wemos-D8 -> Not Used
+* Wemos-D7 -> Roatry-CLK **Yellow**
+* Wemos-D6 -> Rotary-DT **Blue**
+* Wemos-D5 -> Rotary-SW **Green**
 
 ## 5-pin Connectors
+![5PinCables](doc/5pinCables.jpg)
 
 * White,Brown & Gray discarded if using 8pin connectors.
 * Red wire from 1 connector, added to other connector for 2 red wire outputs.
@@ -142,17 +160,18 @@ Ask @Shane.Powell for help getting a slack token.
 * Black pin moved from p2 to p1. Extra black wire added in parallel.
 
 
-* Wemos-3.3v -> **RED** -> VCC on both OLED and Rotary. Use red wire from other connect, add parallel here.
-* Wemos-D8 skipped Black Wire DePined (use to parallel ground on other black connector)
-* Wemos-D7 -> **Yellow** -> Rotary-CLK
-* Wemos-D6 -> **Blue** -> Rotary-DT
-* Wemos-D5 -> **Green** -> Rotary-SW
+## Rotary Encoder
+![RotaryWired](doc/rotaryWired.jpg)
 
-* Wemos-Gnd -> Move black pin over to red pin. Add other black wirer in parallel.
-* Wemos-D4 skipped.
-* Wemos-D3 skipped depin wire
-* Wemos-D2 **Blue** -> OLED-SDA
-* Wemos-D1 **Green** -> OLED-SCL
+## OLED
+![OledWired](doc/oledWired.jpg)
+
+## Connected
+![Connected](doc/allPartsConnected.jpg)
+
+## Installed
+A small dab of HotGlue on each of the 4 posts holds the OLED in place.
+![Connected](doc/installed.jpg)
 
 # License
 [MIT license](license.txt)

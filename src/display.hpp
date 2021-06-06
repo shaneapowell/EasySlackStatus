@@ -314,7 +314,7 @@ public:
         /* Brief Version Display */
         _display.setTextSize(1);
         _display.setTextColor(WHITE);
-        _display.setCursor(10, TS1_LINE4);
+        _display.setCursor(0, TS1_LINE4);
         _display.print(APP_VERSION_NAME);
         _display.flushDisplay();
 
