@@ -10,7 +10,7 @@ Based on [Slack Status Updater With ESP8266](https://www.instructables.com/Slack
     - If you can find a rotary encoder without the header pins, it will be easier to build.
 - 5-pin header wire [Amazon](https://www.amazon.com/gp/product/B0789F2Y1T/ref=ppx_yo_dt_b_asin_title_o09_s00?ie=UTF8&psc=1)
     - I used these 8-pin and cut off 3 pins.
-- 3D Printed Housing [ThingiVerse TBA](https://www.thingiverse.com/thing:4879479)
+- 3D Printed Housing [ThingiVerse](https://www.thingiverse.com/thing:4879479)
 - 2x M2x6mm HexHead screws
 
 # Features
