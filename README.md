@@ -118,7 +118,7 @@ If your org already has a custom app created for this device, you might need to 
 4. Obtain an image exactly 128x64 px in size.
 5. Use an online image converter like (https://javl.github.io/image2cpp/) to create a new default buffer array.
 
-## Wipe D1 Minit Flash Completely to start totally fresh
+## Wipe D1 Mini Flash Completely to start totally fresh
 `pio run --target erase`
 
 # Flash new Firmware
