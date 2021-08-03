@@ -75,8 +75,9 @@ If your org already has a custom app created for this device, you might need to 
 
 
 # FAQ
-* *What is the default admin password?*
-    * 12345678
+* *What is the default admin username and password?*
+    * username: admin
+    * password: 12345678
 
 * *How do I force into Config Mode?*
     * Unplug the power
