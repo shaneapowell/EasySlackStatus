@@ -28,6 +28,11 @@ In order for the status to be correctly sent to your account, you must first obt
 
 Original Insructions are here https://github.com/witnessmenow/arduino-slack-api#getting-auth-token-this-may-change
 
+Slack Scopes Needed:
+ * users.profile:write
+ * users.profile:read
+ * users:write
+
 Ask your Slack Admin for help getting a slack token.
 If your org already has a custom app created for this device, you might need to only add it to your slack account.
 
