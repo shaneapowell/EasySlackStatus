@@ -9,10 +9,11 @@
  Wemos D1
  128x64 pixel SH1106 oled display
  Rotary encoder with push button
+ xxoxp-17986256612-407836640081-3242060752291-46dc5b5e6048882c02dadd5f4556c665
 
  **************************************************************************/
 
-#include <Time.h>
+#include <TimeLib.h>
 #include <Timezone.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
@@ -41,7 +42,7 @@
 #define ROTARY_STEPS_PER_CLICK   4   
 
 /* Must be a string no more than 4 chars.  Only alter when the config changes  */
-#define IOT_WEB_CONFIG_VERSION_CODE  "0001"
+#define IOT_WEB_CONFIG_VERSION_CODE  "0002"
 
 const char* _iotThingName               = "EasySlackStatus";
 const char* _iotWifiInitialApPassword   = "12345678";
@@ -75,24 +76,25 @@ LCD Display;
 /***********************************************/ 
 void onIotWebStateChanged(byte oldState, byte newState)
 {
+
     switch (newState) 
     {
-        case IOTWEBCONF_STATE_BOOT:
+        case iotwebconf::NetworkState::Boot: // IOTWEBCONF_STATE_BOOT:
             Display.setScreen(SCREEN_BOOT);
         break;
 
-        case IOTWEBCONF_STATE_NOT_CONFIGURED:
-        case IOTWEBCONF_STATE_AP_MODE:
+        case iotwebconf::NetworkState::NotConfigured:
+        case iotwebconf::NetworkState::ApMode:
             Display.lockSettings(true);
             Display.setScreen(SCREEN_AP);
         break;
         
-        case IOTWEBCONF_STATE_CONNECTING:
+        case iotwebconf::NetworkState::Connecting:
             Display.lockSettings(true);
             Display.setScreen(SCREEN_WIFI);
         break;
 
-        case IOTWEBCONF_STATE_ONLINE:
+        case iotwebconf::NetworkState::OnLine:
             Display.lockSettings(false);
             Display.setScreen(SCREEN_MAIN);
             _ntpClient.begin();
@@ -175,13 +177,12 @@ void handleWebRoot()
         // -- Captive portal request were already served.
         return;
     }
-    String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-    s += "<title>IotWebConf 01 Minimal</title></head><body>";
-    s += "Go to <a href='config'>Settings Page</a> to change settings.<br><br>";
-    s += APP_VERSION_NAME;
-    s += "</body></html>\n";
 
-    _server.send(200, "text/html", s);
+    _server.send(200, 
+        F("text/html"), 
+        F("<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>IotWebConf 01 Minimal</title></head><body>Go to <a href='config'>Settings Page</a> to change settings.<br><br></body></html>\n")
+    );
+
 }
 
 /********************************************

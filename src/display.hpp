@@ -51,12 +51,14 @@ typedef enum
     SCREEN_AP
 } SCREEN;
 
-
+char FAKE_DISPLAY_NAME[] = "";
+char FAKE_STATUS[] = "Sending...";
+char FAKE_EMOJI[] = "";
 const SlackProfile FAKE_PROFILE_SENDING =
 {
-    "",
-    "Sending...",
-    "",
+    FAKE_DISPLAY_NAME,
+    FAKE_STATUS,
+    FAKE_EMOJI,
     0,
     false
 };

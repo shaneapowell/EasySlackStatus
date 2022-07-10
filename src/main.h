@@ -1,19 +1,18 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#include <Time.h>
+#include <TimeLib.h>
 
 #define APP_VESION_MAJOR 1
-#define APP_VESION_MINOR 0
+#define APP_VESION_MINOR 1
 #define APP_VESION_PATCH 0
 
 
-PROGMEM const char APP_VERSION_CODE[] = { '0'+APP_VESION_MAJOR, '0'+APP_VESION_MINOR, '0'+APP_VESION_PATCH, 0 };
-PROGMEM const char APP_VERSION_NAME[] = {'v', '0'+APP_VESION_MAJOR, '.', '0'+APP_VESION_MINOR, '.', '0'+APP_VESION_PATCH, 0};
+const char* APP_VERSION_NAME = "v1.1.0";
 
 time_t getNtpTime();
 
-#define SLACK_ACCESS_FINGERPRINT "C3 CC ED 77 87 19 6D E7 76 5E AA A7 3D 67 7E CA 95 D2 46 E2"
+#define SLACK_ACCESS_FINGERPRINT "82 AE FD 93 36 30 DA 03 0A 2F 63 53 DE 2E B0 43 8B F4 41 F6"
 #define MAX_SLACK_TOKEN_LENGTH 128
 
 
@@ -23,9 +22,9 @@ const int SLACK_STATUS_ICON_CHARS_MAX = 32;
 const int SLACK_STATUS_EXPIRE_CHARS_MAX = 3;
 const int SLACK_STATUS_COUNT = 15;
 
-const char SLACK_STATUS_BLANK_STATUS[] = "---";
-const char SLACK_STATUS_BLANK_ICON[] = ":O:";
-const char SLACK_STATUS_BLANK_EXPIRE[] = "0";
+const char SLACK_STATUS_BLANK_STATUS[]  = "---";
+const char SLACK_STATUS_BLANK_ICON[]    = ":O:";
+const char SLACK_STATUS_BLANK_EXPIRE[]  = "0";
 
 typedef struct
 {
