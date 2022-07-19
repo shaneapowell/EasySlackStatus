@@ -1,0 +1,75 @@
+{
+    "wifi_ssid": "<Your Wifi SSID>",
+    "wifi_password": "<Your Wifi Password>",
+    "slack_token": "xoxp-<Your Slack Token>",
+    "timezone": "America/Central",
+    "status_list": [ 
+        {
+            "display": "Clear",
+            "status": "",
+            "emoji": "",
+            "expiry": 0
+        },
+        {
+            "status": "Available",
+            "emoji": ":here:",
+            "expiry": 0
+        },
+        {
+            "status": "Coffee",
+            "emoji": ":coffee:",
+            "expiry": 15
+        },
+        {
+            "status": "Lunch",
+            "emoji": ":hamburger:",
+            "expiry": 60
+        },
+        {
+            "status": "Meeting",
+            "emoji": ":calendar:",
+            "expiry": 30
+        },
+        {
+            "status": "OOO",
+            "emoji": ":mountain:",
+            "expiry": 0
+        },
+        {
+            "status": "Offline",
+            "emoji": ":mobile_phone_off:",
+            "expiry": 0
+        },
+        {
+            "status": "Walk Dog",
+            "emoji": ":service_dog:",
+            "expiry": 30
+        },
+        {
+            "status": "On a Break",
+            "emoji": ":hourglass:",
+            "expiry": 15
+        },
+        {
+            "status": "Very Busy",
+            "emoji": ":persevere:",
+            "expiry": 120
+        },
+        {
+            "status": "Doctor",
+            "emoji": ":stethoscope:",
+            "expiry": 90
+        },
+        {
+            "status": "PTO",
+            "emoji": ":palm_tree:",
+            "expiry": 0
+        },
+        {
+            "status": "Sleeping",
+            "emoji": ":zzz:",
+            "expiry": 0
+        }
+    ]
+}
+
