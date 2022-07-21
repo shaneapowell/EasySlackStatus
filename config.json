@@ -32,12 +32,12 @@
         },
         {
             "status": "OOO",
-            "emoji": ":mountain:",
+            "emoji": ":car:",
             "expiry": 0
         },
         {
             "status": "Offline",
-            "emoji": ":mobile_phone_off:",
+            "emoji": ":octagonal_sign:",
             "expiry": 0
         },
         {
@@ -67,7 +67,7 @@
         },
         {
             "status": "Sleeping",
-            "emoji": ":zzz:",
+            "emoji": ":sleeping:",
             "expiry": 0
         }
     ]
