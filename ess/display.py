@@ -244,7 +244,7 @@ def onEncoderClick():
     if not _isScreenOn:
         return
 
-    log.info("Encoder Click")
+    log.info(__name__, "Encoder Click")
 
     global _displayMode
     if _displayMode == DISPLAY_MODE_MAIN or _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
@@ -264,7 +264,7 @@ def onEncoderDoubleClick():
     if not _isScreenOn:
         return
 
-    log.info("Encoder Double Click")
+    log.info(__name__, "Encoder Double Click")
 
     global _displayMode
 
@@ -284,7 +284,7 @@ def onEncoderLongClick():
     if not _isScreenOn:
         return
 
-    log.info("Encoder Long Click.")
+    log.info(__name__, "Encoder Long Click.")
     global _isBodyDirty
     global _displayMode
 
