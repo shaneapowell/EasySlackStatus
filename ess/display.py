@@ -518,5 +518,5 @@ async def loop():
 
             if screenSleepLogMs < now:
                 screenSleepLogMs = now + 1000 * 60 * 5
-                m = int(_lastInputMillis + SCREEN_OFF_INTERVAL_MS - now) / 1000 / 60
+                m = int((_lastInputMillis + SCREEN_OFF_INTERVAL_MS - now) / 1000 / 60)
                 log.debug(__name__, f"Screen Sleep in [{m}] minutes")
