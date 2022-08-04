@@ -3,7 +3,8 @@
     "wifi_password": "<Your Wifi Password>",
     "slack_token": "xoxp-<Your Slack Token>",
     "timezone": "America/Central",
-    "status_list": [ 
+    "enable_telnet": false,
+    "status_list": [
         {
             "display": "Clear",
             "status": "",
@@ -72,4 +73,3 @@
         }
     ]
 }
-

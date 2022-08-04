@@ -105,7 +105,7 @@ def _onRotaryChange():
 
     if _onDecreaseCallback != None and newRotaryVal < _prevRotaryValue:
         _onDecreaseCallback()
-        
+
     _prevRotaryValue = newRotaryVal
 
 
@@ -141,7 +141,7 @@ async def loop():
         # Sanity Check
         if len(btnEvtQueue) > 4:
             raise Exception("Button State Queue grew beyond 4.  Oops")
-        
+
 
         # Double Click - 4 events
         if len(btnEvtQueue) >= 4:
@@ -181,7 +181,7 @@ async def loop():
                         _onLongClickCallback()
                     btnEvtQueue.clear()
 
-        
+
 
 # Final Setup
 _rotary.add_listener(_onRotaryChange)

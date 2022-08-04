@@ -17,8 +17,9 @@ import ess.display as display
 import ess.encoder as encoder
 import ess.slack as slack
 import lib.utimezone as tz
+import lib.utelnetserver
 
-DEBUG_ENABLE_AMPY_PING  = True      # Ampy times out without a regular output to it's stdin
+DEBUG_ENABLE_AMPY_PING  = False     # Ampy times out without a regular output to it's stdin
 DEBUG_ENABLE_MEMINFO    = False     # Dump the current mem info
 DEBUG_ENABLE_WIFIINFO   = False     # Dump the wifi info
 
@@ -55,7 +56,7 @@ def _loadConfig() -> bool:
     if const.CFG_KEY_SLACK_TOKEN not in _config.keys():
         display.renderGeneralError(const.CFG_FILENAME, const.CFG_KEY_SLACK_TOKEN, const.ERR_NOT_FOUND)
         return False
-    
+
     if _config[const.CFG_KEY_SLACK_TOKEN] == None:
         display.renderGeneralError(const.CFG_FILENAME, const.CFG_KEY_SLACK_TOKEN, const.ERR_NOT_SET)
         return False
@@ -111,8 +112,8 @@ def _setup() -> bool:
 
     # The display module needs the config for the status values to render
     display.setup(_config)
-    
-    # Load config.json 
+
+    # Load config.json
     if not _loadConfig():
         return False
 
@@ -153,6 +154,12 @@ def _setup() -> bool:
         log.error(__name__, str(e))
         return False
 
+
+    # Enable the telnet server for debugging?
+    if const.CFG_KEY_ENABLE_TELNET in _config and _config[const.CFG_KEY_ENABLE_TELNET] == True:
+        lib.utelnetserver.start()
+
+
     return True
 
 
@@ -185,7 +192,7 @@ async def _dumpDebugInfoLoop():
 
         if ampyPing:
             print(".")
-    
+
 
 
 async def _wifiStatusLoop():
@@ -197,7 +204,7 @@ async def _wifiStatusLoop():
     log.info(__name__, "Start Network/Time Status Loop ...")
 
     while True:
-        
+
         # -1 = error
         # 0  = not connected
         # 1  = connecting
@@ -251,7 +258,7 @@ async def _timeSyncLoop():
     Run very infrequently to re-sync the ntp time
     """
     sleepInterval = 2000
-    
+
     while True:
 
         try:
@@ -271,7 +278,7 @@ async def _main():
     if not _setup():
         return
 
-    await uasyncio.gather( 
+    await uasyncio.gather(
         _dumpDebugInfoLoop(),
         _wifiStatusLoop(),
         _timeSyncLoop(),
@@ -280,7 +287,7 @@ async def _main():
         display.loop(),
     )
 
-        
+
 
 def start():
     """
@@ -288,4 +295,3 @@ def start():
     log.info(__name__, "EasySlackStatus Starting....")
     uasyncio.get_event_loop().run_until_complete( _main() )
     log.info(__name__, "EasySlackStatus Stopped")
-

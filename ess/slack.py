@@ -192,6 +192,6 @@ async def loop():
 
     # Keep the thread alive
     while True:
-        _shutdownCountdown = 5
+        _shutdownCountdown = 25
         await uasyncio.sleep_ms(100)
 

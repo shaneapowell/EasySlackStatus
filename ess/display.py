@@ -5,7 +5,7 @@ import time
 import network
 from machine import Pin, SoftI2C
 import ess.const as const
-
+import ess.log as log
 
 # 60 minutes
 SCREEN_OFF_INTERVAL_MS = (60 * 60 * 1000)
@@ -41,7 +41,7 @@ TS1_LINE_COUNT = len(TS1_LINES)
 
 # Wifi Icons
 WIFI_ICONS = {
-    const.WIFI_ERROR: [ 
+    const.WIFI_ERROR: [
         [0,0,0,1,1,0,0,0],
         [0,0,0,1,1,0,0,0],
         [0,0,0,1,1,0,0,0],
@@ -51,7 +51,7 @@ WIFI_ICONS = {
         [0,0,0,1,1,0,0,0],
         [0,0,0,1,1,0,0,0]
     ],
-    const.WIFI_NOT_CONNECTED: [ 
+    const.WIFI_NOT_CONNECTED: [
         [0,0,1,1,1,1,0,0],
         [0,1,1,0,0,1,1,0],
         [1,1,1,1,0,0,1,1],
@@ -61,7 +61,7 @@ WIFI_ICONS = {
         [0,1,1,0,0,1,1,0],
         [0,0,1,1,1,1,0,0]
     ],
-    const.WIFI_CONNECTING: [ 
+    const.WIFI_CONNECTING: [
         [1,1,1,1,1,1,1,1],
         [0,1,0,0,0,0,1,0],
         [0,0,1,0,0,1,0,0],
@@ -71,7 +71,7 @@ WIFI_ICONS = {
         [0,1,0,0,0,0,1,0],
         [1,1,1,1,1,1,1,1]
     ],
-    const.WIFI_CONNECTED: [ 
+    const.WIFI_CONNECTED: [
         [0,0,0,0,0,0,0,0,0,1,1],
         [0,0,0,0,0,0,0,0,0,1,1],
         [0,0,0,0,0,0,1,1,0,1,1],
@@ -96,7 +96,7 @@ _display.fill(0)
 _display.show()
 
 # Input Status
-_lastInputMillis = sys.maxsize
+_lastInputMillis = 0
 
 # Main Body Status
 _displayMode = DISPLAY_MODE_MAIN
@@ -152,7 +152,7 @@ def renderGeneralError(line1: str = "", line2: str = "", line3: str = "", line4 
 def setTopStatus(name: str, status: str = None):
     """
     Should nearly always be the slack status.
-    Name and Status. 
+    Name and Status.
     the Status is optional. If it's not provided, only the name is drawn with no '-' separator
     """
     global _topStatusName
@@ -205,7 +205,7 @@ def onEncoderIncrease():
         status = _config[const.CFG_KEY_STATUS_LIST][_topStatusToRenderIndex + _itemHighlightIndex]
         expiry  = status[const.CFG_KEY_STATUS_ITEM_EXPIRY] + 1
         status[const.CFG_KEY_STATUS_ITEM_EXPIRY] = min(const.SLACK_MAX_EXPIRY_MINUTES, expiry)
-        
+
     global _isBodyDirty
     _isBodyDirty = True
 
@@ -244,7 +244,7 @@ def onEncoderClick():
     if not _isScreenOn:
         return
 
-    print(">>> Encoder Click")
+    log.info("Encoder Click")
 
     global _displayMode
     if _displayMode == DISPLAY_MODE_MAIN or _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
@@ -264,7 +264,7 @@ def onEncoderDoubleClick():
     if not _isScreenOn:
         return
 
-    print(">>> Encoder Double Click")
+    log.info("Encoder Double Click")
 
     global _displayMode
 
@@ -273,7 +273,7 @@ def onEncoderDoubleClick():
 
     global _isBodyDirty
     _isBodyDirty = True
-    
+
 
 def onEncoderLongClick():
     """
@@ -284,7 +284,7 @@ def onEncoderLongClick():
     if not _isScreenOn:
         return
 
-    print(">>> Encoder Long Click.")
+    log.info("Encoder Long Click.")
     global _isBodyDirty
     global _displayMode
 
@@ -351,7 +351,7 @@ def _renderBottomStatusLine() -> bool:
                         col = 0
 
                 _display.pixel(x + colIndex, y + rowIndex, col)
-        
+
         # Right Status
         x = _display.width - (len(_bottomRightStatus) * TS1_FONT_WIDTH)
         _display.text(_bottomRightStatus, x, y)
@@ -398,7 +398,7 @@ def _renderSelectExpiryBody() -> bool:
     Render the Expiry Minutes selection screen in the main body
     """
     if _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
-        
+
         global _isBodyDirty
         if _isBodyDirty:
 
@@ -413,10 +413,10 @@ def _renderSelectExpiryBody() -> bool:
             _renderItemLine(TS1_LINE1, f"  Expire in {expiry}", True)
             _renderItemLine(TS1_LINE2,  "   Minutes")
             _renderItemLine(TS1_LINE3,  "")
-        
+
             _isBodyDirty = False
             return True
-    
+
     return False
 
 
@@ -495,21 +495,28 @@ async def loop():
     global _lastInputMillis
     global _isScreenOn
 
+    screenSleepLogMs = 0
+
     while True:
 
         now = time.ticks_ms()
 
-        if _isScreenOn:
-            _renderMainScreen()
-        
-        # Screen Sleep
-        if now > _lastInputMillis + SCREEN_OFF_INTERVAL_MS:
-            if _isScreenOn:
-                _display.sleep(True)
+        # Screen Sleep or not
+        if _lastInputMillis + SCREEN_OFF_INTERVAL_MS < now:
+            if _isScreenOn != False:
+                log.info(__name__, "Screen Sleep")
             _isScreenOn = False
-        elif not _isScreenOn:
-            _display.sleep(False)
+            _display.sleep(True)
+            await uasyncio.sleep_ms(250)
+        else:
+            if _isScreenOn != True:
+                log.info(__name__, "Screen Wake")
             _isScreenOn = True
+            _display.sleep(False)
+            _renderMainScreen()
+            await uasyncio.sleep_ms(10)
 
-        await uasyncio.sleep_ms(10)
-
+            if screenSleepLogMs < now:
+                screenSleepLogMs = now + 1000 * 60 * 5
+                m = int(_lastInputMillis + SCREEN_OFF_INTERVAL_MS - now) / 1000 / 60
+                log.debug(__name__, f"Screen Sleep in [{m}] minutes")

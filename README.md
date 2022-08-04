@@ -4,7 +4,7 @@ Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Sl
 ![EasySlackStatus](doc/easyslackstatus.jpg)
 ![EasySlackStatus](doc/easyslackstatusB.jpg)
 
-# Required Hardware 
+# Required Hardware
 - Wemos D1 Mini ESP32 [Amzon](https://www.amazon.com/MELIFE-Bluetooth-Development-Functional-Compatible/dp/B08FWXFSVN/)
 - 128x64 SH1106 I2C OLED Display [Amazon](https://www.amazon.com/gp/product/B08V97FYD2/)
 - Rotary encoder with push button [Amazon](https://www.amazon.com/gp/product/B07T3672VK/ref=ppx_yo_dt_b_search_asin_image?ie=UTF8&psc=1)
@@ -21,13 +21,13 @@ Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Sl
 - Shows your current slack status (updates every 60 seconds)
 - Configure your own status text and icons.
 - Room for up to 25 unique status.
-- ScreenSaver triggers after 60 minutes of no input.  Simply turn the rotary dial to wake back up.  
+- ScreenSaver triggers after 60 minutes of no input.  Simply turn the rotary dial to wake back up.
 - Simple json Based Configuration.
 
 # Future Plans
 - Command line file configuration.
 - Automatic Softwrae Updates
-- A wifi configurator. 
+- A wifi configurator.
 
 # Obtain a **unique to you** Slack-Token
 In order for the status to be correctly sent to your account, you must first obtain a unique `Slack-Token`. This token binds your EasySlackStatus device to your specific user and workspace.
@@ -47,7 +47,7 @@ Steps:
      - users:write
   - Scroll back to the top and click `Install app to Workspace`
   - Click `Allow`
-  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-17986256612-407223851215-376290712391-48df5e2e6083745488da8823455afe67` 
+  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-17986256612-407223851215-376290712391-48df5e2e6083745488da8823455afe67`
 
 Ask your Slack Admin for help getting a slack token if your slack has restrictions.
 
@@ -111,7 +111,7 @@ Each entry in the `status_list` within yoru config.json file is made up of:
 - `emoji`: The slack emoji code you want.  Can be empty.
 - `expiry`: The number of minutes to expire this status.
 - `display`: An optional display text value. This i what you see on the EasySlackStatus screen, but the `status` text above is what is actually sent.  This is handy if you want to show a short status line on the EasySlackStatus, but send a longer one to Slack. Or, if you want a `clear` status.
-  
+
 ```
 {
     "display": "Available",
@@ -123,16 +123,20 @@ Each entry in the `status_list` within yoru config.json file is made up of:
 # FAQ
 * *How can I view the logs while it's running*
   * You can use a serial terminal to connect to the `/dev/ttyUSB0` port of your device.  You'll gain access to the `repl` interface, which should also now be outputting the log messages to your screen.
-  
+
 * *How do I find the current IP address and WiFi settings?*
     * Long Press the rotary dial.
     * Should show the current WiFi status, ip, config URL and Time.
- 
+
+* *How can I view the debug log?
+  * Using REPL over usb from your computer.
+  * Enable the `telnet_enabled` flag in the `config.json` file, and telnet to the IP address of the device to see the logs.
+
 
 # Build your own
 
 ## Wemos D1 Mini ESP32
-Solder a pair of 5-pin headers to the Wemos D1. See pic below. Solder on the inside rows on both side.  Between `3.3v-IO18` and `GND-IO22`. 
+Solder a pair of 5-pin headers to the Wemos D1. See pic below. Solder on the inside rows on both side.  Between `3.3v-IO18` and `GND-IO22`.
 
 ![WemosPins](doc/wemosPins.jpg)
 ![WemosPins](doc/wemosPinsB.jpg)
@@ -140,7 +144,7 @@ Solder a pair of 5-pin headers to the Wemos D1. See pic below. Solder on the ins
 The colors below indicate the wire color used on the 5 pin header wires.
 
 ### 5-pin (Right)
-* Wemos-GND -> **Black** - OLED & Rotary GND 
+* Wemos-GND -> **Black** - OLED & Rotary GND
 * Wemos-D4 -> Not Used
 * Wemos-D3 -> Not Used
 * Wemos-D2 -> **Blue** - OLED-SDA
@@ -169,12 +173,12 @@ Reference the above pins list to know which goes where on your particular encode
 ## OLED
 ![OledWired](doc/oledWired.jpg)
 
-## Connected 
+## Connected
 Note: The MCU you see is the 1st generation esp8266 based.  Couldn't handle SSL in Micropython, so the project switched to the vastly better ESP32.
 ![Connected](doc/allPartsConnected.jpg)
 
 ## Installed
-There is a small groove in the top of the case for the rotary encoders index pin. 
+There is a small groove in the top of the case for the rotary encoders index pin.
 A small dab of HotGlue on each of the 4 posts holds the OLED in place.  You can still see some of the got-glue string.
 
 ![Connected](doc/installedA.jpg)
@@ -184,10 +188,10 @@ Slide the D1-Mini into the rail slots. The back-plate holds it in place.
 
 # License
 [MIT license](license.txt)
- 
 
 
-# How the project was assembled & configured. 
+
+# How the project was assembled & configured.
 Plans are underway to perhaps make this into an automatically built micropython image.  Or, some sort of upip package.  In the mean time, this is how the `/lib` folder was populated.
  - cd lib
  - wget https://raw.githubusercontent.com/robert-hh/SH1106/master/sh1106.py
@@ -197,6 +201,7 @@ Plans are underway to perhaps make this into an automatically built micropython 
  - wget https://raw.githubusercontent.com/miketeachman/micropython-rotary/master/rotary.py
  - wget https://raw.githubusercontent.com/shaneapowell/utimezone/master/utimezone.py
  - wget https://raw.githubusercontent.com/shaneapowell/utimezone/master/utzlist.py
+ - wget https://raw.githubusercontent.com/cpopp/MicroTelnetServer/master/utelnet/utelnetserver.py
 
 
 ## mpfshell scripted (TBD)
