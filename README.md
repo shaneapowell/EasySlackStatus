@@ -195,7 +195,6 @@ Slide the D1-Mini into the rail slots. The back-plate holds it in place.
 Plans are underway to perhaps make this into an automatically built micropython image.  Or, some sort of upip package.  In the mean time, this is how the `/lib` folder was populated.
  - cd lib
  - wget https://raw.githubusercontent.com/robert-hh/SH1106/master/sh1106.py
-   - Line 200 in sh1106.py. change from fbuf.height to self.height
  - wget https://raw.githubusercontent.com/miketeachman/micropython-rotary/master/rotary_irq_esp.py
    - Modify import at top of rotary.py  (from lib.rotary import Rotary)
  - wget https://raw.githubusercontent.com/miketeachman/micropython-rotary/master/rotary.py
