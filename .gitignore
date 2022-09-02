@@ -1,1 +1,3 @@
 src/creds.h
+esp32.bin
+config.json

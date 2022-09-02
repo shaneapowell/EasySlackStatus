@@ -1,0 +1,35 @@
+name: slacker
+help: EasySlackStatus quick installer
+version: 0.1.0
+
+commands:
+- name: flash
+  alias: f
+  help: Flash the device
+  args:
+  - name: device
+    required: true
+    help: The /dev mount point where the device is mounted
+
+  examples:
+  - slacker flash /dev/ttyUSB0
+  - slacker f /dev/ttyUSB0
+
+- name: bootstrap
+  alias: b
+  help: Installs needed files on the device and tests the setup
+  args:
+  - name: device
+    required: true
+    help: The /dev mount point where the device is mounted
+
+  flags:
+  - long: --force
+    short: -f
+    help: Force installing auto-start script
+
+  examples:
+  - slacker bootstrap /dev/ttyUSB0
+  - slacker b /dev/ttyUSB0
+  - slacker bootstrap --force /dev/ttyUSB0
+  - slacker b --force /dev/ttyUSB0
