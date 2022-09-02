@@ -243,7 +243,7 @@ async def _wifiStatusLoop():
         # Date/Time
         now = ess.time.gmnow()
         day = ess.time.weekday(now[0], now[1], now[2])
-        hour = ess.time.to12h(now[3])
+        hour = ess.time.to12h(now[3], True)
 
         display.setBottomStatus(wifiState, wifiStrength, f"{day[1]} {hour}:{now[4]:02}:{now[5]:02}")
 
