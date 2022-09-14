@@ -4,7 +4,7 @@ Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Sl
 ![EasySlackStatus](doc/easyslackstatus.jpg)
 ![EasySlackStatus](doc/easyslackstatusB.jpg)
 
-# Required Hardware
+## Required Hardware
 - Wemos D1 Mini ESP32 [Amzon](https://www.amazon.com/MELIFE-Bluetooth-Development-Functional-Compatible/dp/B08FWXFSVN/)
 - 128x64 SH1106 I2C OLED Display [Amazon](https://www.amazon.com/gp/product/B08V97FYD2/)
 - Rotary encoder with push button [Amazon](https://www.amazon.com/gp/product/B07T3672VK/ref=ppx_yo_dt_b_search_asin_image?ie=UTF8&psc=1)
@@ -14,7 +14,7 @@ Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Sl
 - 3D Printed Housing [ThingiVerse](https://www.thingiverse.com/thing:4879479)
 - 2x M2x6mm HexHead screws
 
-# Features
+## Features
 - 100% OpenSource MIT License.
 - Set your current slack status with optional emjoi.
 - Set an Expiring (in x minutes) status.
@@ -24,12 +24,14 @@ Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Sl
 - ScreenSaver triggers after 60 minutes of no input.  Simply turn the rotary dial to wake back up.
 - Simple json Based Configuration.
 
-# Future Plans
+## Future Plans
 - Command line file configuration.
 - Automatic Softwrae Updates
 - A wifi configurator.
 
-# Obtain a **unique to you** Slack-Token
+# Getting Started
+
+## Obtain a **unique to you** Slack-Token
 In order for the status to be correctly sent to your account, you must first obtain a unique `Slack-Token`. This token binds your EasySlackStatus device to your specific user and workspace.
 
 Original Instructions I used are here https://github.com/witnessmenow/arduino-slack-api
@@ -47,12 +49,30 @@ Steps:
      - users:write
   - Scroll back to the top and click `Install app to Workspace`
   - Click `Allow`
-  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-17986256612-407223851215-376290712391-48df5e2e6083745488da8823455afe67`
+  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-< ... >`
 
 Ask your Slack Admin for help getting a slack token if your slack has restrictions.
 
+## Quick-Start Setup Command
 
-# Flashing the firmware and EasySlackStatus software
+- Run `./slacker --help` for a list of commands.
+- Run `./slacker flash <device>` to flash the device.
+- Run `./slacker bootstrap <device>` to install the files needed to run the application.
+
+### Configuring the Cli
+
+1. The CLI is generated used [Bashly](https://github.com/DannyBen/bashly).
+> If you have docker installed, you can create an alias that will run the docker image:
+```
+alias bashly='docker run --rm -it --user $(id -u):$(id -g) --volume "$PWD:/app" dannyben/bashly'
+```
+
+Otherwise, refer to [Installing Bashly](https://bashly.dannyb.co/installation/)
+2. Update the `src/bashly.yml` and run `bashly generate` to generate the updated CLI.
+> Note: updating the scripts in `src` won't commit the changes to the CLI. You will need to run `bashly generate` each time you want to update the CLI commands/params.
+3. Finally, you can validate with `./slacker --help`
+
+## Flashing the firmware and EasySlackStatus software
 `EasySlackStatus` runs on an ESP32 running Micropython.  The following steps will get you up and running.
 1. Install the tools [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/) and [ampy](https://github.com/scientifichackers/ampy) to your computer.
    1. `pip3 install esptool`
@@ -81,13 +101,13 @@ Ask your Slack Admin for help getting a slack token if your slack has restrictio
 9. To Disable the auto-start script if you need to do more testing.
    1.  `ampy -p /dev/ttyUSB0 rm main.py`
 
-# Items on the Screen
+### Items on the Screen
 - Bottom Left shows the wifi status and strength.  An hourglass indicates the wifi is connecting.  A circle with a line indicates not-connected.
 - Bottom Right shows the current day and time in your timezone.
 - Top Left shows your name from Slack. This value will be only your first name, and a max of 7 characters only when a status is set.  When your status is clear, your entire first name (within the max of 16 characters) is displayed.
 - Top Right shows the current slack status text when there is one.
 
-# Send a Slack Status
+### Send a Slack Status
 1. Rotate the dial until the status you want is highlighted.
 2. Single Press the dial.
     * The top should show a `Sending...`
@@ -95,17 +115,17 @@ Ask your Slack Admin for help getting a slack token if your slack has restrictio
     * ERROR simply means.. well. .something went wrong.  Try again.
 
 
-# Send an Expiring status
+### Send an Expiring status
 1. Rotate the dial until the desired status is highlighted.
 2. Double-Press (quickly) the rotary dial to enter `Expire In` selection screen.
 3. Rotate the dial to set the minutes to expire.  The default minutes is pulled from the `Default Expire In Minutes` field on the webconfig.
 4. Press the rotary dial once to send the status.
 5. The expiry minutes will be now set as the new default for that status,  until the next reboot.  The expiry value is not set into your `config.json` file.
 
-# View WiFi Info
+### View WiFi Info
 1. Long Press the rotary dial to switch back-and-forth between the main status selection screen, and the WiFi Info Screen.
 
-# Setup your `config.json` file with new status values.
+### Setup your `config.json` file with new status values.
 Each entry in the `status_list` within yoru config.json file is made up of:
 - `status`: The text to send. Can't be empty. Except if you want to use a `clear` status.
 - `emoji`: The slack emoji code you want.  Can be empty.
