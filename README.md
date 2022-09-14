@@ -49,7 +49,7 @@ Steps:
      - users:write
   - Scroll back to the top and click `Install app to Workspace`
   - Click `Allow`
-  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-17986256612-407223851215-376290712391-48df5e2e6083745488da8823455afe67`
+  - You will now have an `OAuth Access Token` that you must copy to the `config.json` file. The toke will be something like `xoxp-< ... >`
 
 Ask your Slack Admin for help getting a slack token if your slack has restrictions.
 
