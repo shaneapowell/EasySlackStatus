@@ -1,4 +1,4 @@
-# ESP8266 Slack Status Updater
+# ESP32 Slack Status Updater
 Inspired by [Slack Status Updater With ESP8266](https://www.instructables.com/Slack-Status-Updater-With-ESP8266/) by Becky Stern
 
 ![EasySlackStatus](doc/easyslackstatus.jpg)
