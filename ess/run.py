@@ -19,7 +19,6 @@ import ess.slack as slack
 import lib.utimezone as tz
 import lib.utelnetserver
 
-DEBUG_ENABLE_AMPY_PING  = False     # Ampy times out without a regular output to it's stdin
 DEBUG_ENABLE_MEMINFO    = False     # Dump the current mem info
 DEBUG_ENABLE_WIFIINFO   = False     # Dump the wifi info
 
@@ -164,11 +163,11 @@ def _setup() -> bool:
 
 
 
-async def _dumpDebugInfoLoop():
+async def _dumpDebugInfoLoop(enableAmpyPing=False):
 
     log.info(__name__, "Start Dump Debugging Loop...")
 
-    ampyPing = DEBUG_ENABLE_AMPY_PING
+    ampyPing = enableAmpyPing
 
     while True:
         await uasyncio.sleep_ms(5000)
@@ -272,14 +271,14 @@ async def _timeSyncLoop():
         await uasyncio.sleep_ms(sleepInterval)
 
 
-async def _main():
+async def _main(enableAmpyPing=False):
     """
     """
     if not _setup():
         return
 
     await uasyncio.gather(
-        _dumpDebugInfoLoop(),
+        _dumpDebugInfoLoop(enableAmpyPing=enableAmpyPing),
         _wifiStatusLoop(),
         _timeSyncLoop(),
         encoder.loop(),
@@ -288,10 +287,11 @@ async def _main():
     )
 
 
-
-def start():
+def start(enableAmpyPing=False):
     """
     """
     log.info(__name__, "EasySlackStatus Starting....")
-    uasyncio.get_event_loop().run_until_complete( _main() )
+    uasyncio.get_event_loop().run_until_complete(
+        _main(enableAmpyPing=enableAmpyPing)
+        )
     log.info(__name__, "EasySlackStatus Stopped")
