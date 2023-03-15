@@ -1,4 +1,3 @@
-import sys
 import uasyncio
 from lib.sh1106 import SH1106_I2C
 import time
@@ -6,14 +5,18 @@ import network
 from machine import Pin, SoftI2C
 import ess.const as const
 import ess.log as log
+import random
 
 # 60 minutes
-SCREEN_OFF_INTERVAL_MS = (60 * 60 * 1000)
+SCREEN_SAVER_INTERVAL_MS = (60 * 60 * 1000)
+SCREEN_SAVER_DIR_MAX = 4
 
 # Display Modes
-DISPLAY_MODE_MAIN                    = 0
-DISPLAY_MODE_WIFI_STATUS             = 1
-DISPLAY_MODE_SLACK_EXPIRE_SELECT     = 2
+DISPLAY_MODE_MAIN = 0
+DISPLAY_MODE_WIFI_STATUS = 1
+DISPLAY_MODE_SLACK_EXPIRE_SELECT = 2
+DISPLAY_MODE_SCREEN_SAVER = 99
+
 
 # Text Size 1
 TS1_FONT_HEIGHT = 8  # Default FreameBuffer font
@@ -42,44 +45,44 @@ TS1_LINE_COUNT = len(TS1_LINES)
 # Wifi Icons
 WIFI_ICONS = {
     const.WIFI_ERROR: [
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,0,0,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0]
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,0,0,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0]  # noqa: E231
     ],
     const.WIFI_NOT_CONNECTED: [
-        [0,0,1,1,1,1,0,0],
-        [0,1,1,0,0,1,1,0],
-        [1,1,1,1,0,0,1,1],
-        [1,0,1,1,1,0,0,1],
-        [1,0,0,1,1,1,0,1],
-        [1,1,0,0,1,1,1,1],
-        [0,1,1,0,0,1,1,0],
-        [0,0,1,1,1,1,0,0]
+        [0,0,1,1,1,1,0,0],  # noqa: E231
+        [0,1,1,0,0,1,1,0],  # noqa: E231
+        [1,1,1,1,0,0,1,1],  # noqa: E231
+        [1,0,1,1,1,0,0,1],  # noqa: E231
+        [1,0,0,1,1,1,0,1],  # noqa: E231
+        [1,1,0,0,1,1,1,1],  # noqa: E231
+        [0,1,1,0,0,1,1,0],  # noqa: E231
+        [0,0,1,1,1,1,0,0]  # noqa: E231
     ],
     const.WIFI_CONNECTING: [
-        [1,1,1,1,1,1,1,1],
-        [0,1,0,0,0,0,1,0],
-        [0,0,1,0,0,1,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,0,1,1,0,0,0],
-        [0,0,1,0,0,1,0,0],
-        [0,1,0,0,0,0,1,0],
-        [1,1,1,1,1,1,1,1]
+        [1,1,1,1,1,1,1,1],  # noqa: E231
+        [0,1,0,0,0,0,1,0],  # noqa: E231
+        [0,0,1,0,0,1,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,0,1,1,0,0,0],  # noqa: E231
+        [0,0,1,0,0,1,0,0],  # noqa: E231
+        [0,1,0,0,0,0,1,0],  # noqa: E231
+        [1,1,1,1,1,1,1,1]  # noqa: E231
     ],
     const.WIFI_CONNECTED: [
-        [0,0,0,0,0,0,0,0,0,1,1],
-        [0,0,0,0,0,0,0,0,0,1,1],
-        [0,0,0,0,0,0,1,1,0,1,1],
-        [0,0,0,0,0,0,1,1,0,1,1],
-        [0,0,0,1,1,0,1,1,0,1,1],
-        [0,0,0,1,1,0,1,1,0,1,1],
-        [1,1,0,1,1,0,1,1,0,1,1],
-        [1,1,0,1,1,0,1,1,0,1,1],
+        [0,0,0,0,0,0,0,0,0,1,1],  # noqa: E231
+        [0,0,0,0,0,0,0,0,0,1,1],  # noqa: E231
+        [0,0,0,0,0,0,1,1,0,1,1],  # noqa: E231
+        [0,0,0,0,0,0,1,1,0,1,1],  # noqa: E231
+        [0,0,0,1,1,0,1,1,0,1,1],  # noqa: E231
+        [0,0,0,1,1,0,1,1,0,1,1],  # noqa: E231
+        [1,1,0,1,1,0,1,1,0,1,1],  # noqa: E231
+        [1,1,0,1,1,0,1,1,0,1,1],  # noqa: E231
     ],
 }
 
@@ -100,7 +103,6 @@ _lastInputMillis = 0
 
 # Main Body Status
 _displayMode = DISPLAY_MODE_MAIN
-_isScreenOn = True
 _isBodyDirty = True
 
 # Slack Status
@@ -119,6 +121,13 @@ _isBottomStatusDirty = True
 _topStatusToRenderIndex = 0  # The status values within the config.json. We render 4, starting at this index.
 _itemHighlightIndex = 0      # Which currently rendered status to highlight. This is a 0-4 offset of the above index
 
+# Screen Saver
+_sSaverX = 0
+_sSaverY = 0
+_sSaverXDir = 2
+_sSaverYDir = 1
+
+
 def setup(cfg: dict):
     """
     """
@@ -127,18 +136,20 @@ def setup(cfg: dict):
 
 def renderSplash():
     """
+    Show our initial splash screen
     """
     _display.fill(0)
-    _display.text('Easy',   5, TS1_STATUS_LINE_TOP)
-    _display.text('Slack',  15, TS1_LINE0)
+    _display.text('Easy', 5, TS1_STATUS_LINE_TOP)
+    _display.text('Slack', 15, TS1_LINE0)
     _display.text('Status', 25, TS1_LINE1)
     _display.text('Shane Powell', 0, TS1_LINE3)
-    _display.text('v2.0', 0, TS1_STATUS_LINE_BOTTOM)
+    _display.text('v2.1', 0, TS1_STATUS_LINE_BOTTOM)
     _display.show()
 
 
-def renderGeneralError(line1: str = "", line2: str = "", line3: str = "", line4 = ""):
+def renderGeneralError(line1: str = "", line2: str = "", line3: str = "", line4=""):
     """
+    Render a general error message
     """
     _display.fill(0)
     _display.text('ERROR:', 0, TS1_STATUS_LINE_TOP)
@@ -190,7 +201,7 @@ def onEncoderIncrease():
     global _lastInputMillis
     _lastInputMillis = time.ticks_ms()
 
-    if not _isScreenOn:
+    if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
         return
 
     if _displayMode == DISPLAY_MODE_MAIN:
@@ -203,11 +214,12 @@ def onEncoderIncrease():
 
     if _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
         status = _config[const.CFG_KEY_STATUS_LIST][_topStatusToRenderIndex + _itemHighlightIndex]
-        expiry  = status[const.CFG_KEY_STATUS_ITEM_EXPIRY] + 1
+        expiry = status[const.CFG_KEY_STATUS_ITEM_EXPIRY] + 1
         status[const.CFG_KEY_STATUS_ITEM_EXPIRY] = min(const.SLACK_MAX_EXPIRY_MINUTES, expiry)
 
     global _isBodyDirty
     _isBodyDirty = True
+
 
 def onEncoderDecrease():
     """
@@ -215,7 +227,7 @@ def onEncoderDecrease():
     global _lastInputMillis
     _lastInputMillis = time.ticks_ms()
 
-    if not _isScreenOn:
+    if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
         return
 
     if _displayMode == DISPLAY_MODE_MAIN:
@@ -228,7 +240,7 @@ def onEncoderDecrease():
 
     if _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
         status = _config[const.CFG_KEY_STATUS_LIST][_topStatusToRenderIndex + _itemHighlightIndex]
-        expiry  = status[const.CFG_KEY_STATUS_ITEM_EXPIRY] - 1
+        expiry = status[const.CFG_KEY_STATUS_ITEM_EXPIRY] - 1
         status[const.CFG_KEY_STATUS_ITEM_EXPIRY] = max(0, expiry)
 
     global _isBodyDirty
@@ -239,14 +251,14 @@ def onEncoderClick():
     """
     """
     global _lastInputMillis
+    global _displayMode
     _lastInputMillis = time.ticks_ms()
 
-    if not _isScreenOn:
+    if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
         return
 
     log.info(__name__, "Encoder Click")
 
-    global _displayMode
     if _displayMode == DISPLAY_MODE_MAIN or _displayMode == DISPLAY_MODE_SLACK_EXPIRE_SELECT:
         status = _config[const.CFG_KEY_STATUS_LIST][_topStatusToRenderIndex + _itemHighlightIndex]
         _sendSlackStatusCallback(status[const.CFG_KEY_STATUS_ITEM_STATUS], status[const.CFG_KEY_STATUS_ITEM_EMOJI], status[const.CFG_KEY_STATUS_ITEM_EXPIRY])
@@ -255,18 +267,19 @@ def onEncoderClick():
     global _isBodyDirty
     _isBodyDirty = True
 
+
 def onEncoderDoubleClick():
     """
     """
     global _lastInputMillis
+    global _displayMode
+
     _lastInputMillis = time.ticks_ms()
 
-    if not _isScreenOn:
+    if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
         return
 
     log.info(__name__, "Encoder Double Click")
-
-    global _displayMode
 
     if _displayMode == DISPLAY_MODE_MAIN:
         _displayMode = DISPLAY_MODE_SLACK_EXPIRE_SELECT
@@ -279,18 +292,19 @@ def onEncoderLongClick():
     """
     """
     global _lastInputMillis
-    _lastInputMillis = time.ticks_ms()
-
-    if not _isScreenOn:
-        return
-
-    log.info(__name__, "Encoder Long Click.")
     global _isBodyDirty
     global _displayMode
 
+    _lastInputMillis = time.ticks_ms()
+
+    if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
+        return
+
+    log.info(__name__, "Encoder Long Click.")
+
     if _displayMode == DISPLAY_MODE_MAIN:
         _displayMode = DISPLAY_MODE_WIFI_STATUS
-    elif _displayMode == DISPLAY_MODE_WIFI_STATUS:
+    elif _displayMode == DISPLAY_MODE_WIFI_STATUS or DISPLAY_MODE_SCREEN_SAVER:
         _displayMode = DISPLAY_MODE_MAIN
 
     _isBodyDirty = True
@@ -308,7 +322,7 @@ def _renderTopStatusLine() -> bool:
         _display.fill_rect(0, TS1_STATUS_LINE_TOP, _display.width, TS1_STATUS_LINE_HEIGHT, 0)
 
         line = _topStatusName
-        if _topStatusStatus != None and _topStatusStatus != "":
+        if _topStatusStatus is not None and _topStatusStatus != "":
             line = f"{_topStatusName[:7]}={_topStatusStatus}"
 
         # Render Name at Left
@@ -344,7 +358,7 @@ def _renderBottomStatusLine() -> bool:
             for colIndex, col in enumerate(row):
                 # Adjust the icon based on strength. The strength should ONLY be not const.WIFI_STRONG when actually connected with an IP
                 # Only not strong should be adjusted. And we never affect the bottom 2 rows.
-                if  rowIndex <= 6 and _bottomLeftWifiStrength != const.WIFI_STRONG:
+                if rowIndex <= 6 and _bottomLeftWifiStrength != const.WIFI_STRONG:
                     if _bottomLeftWifiStrength == const.WIFI_MEDIUM and colIndex >= 8:
                         col = 0
                     elif _bottomLeftWifiStrength == const.WIFI_WEAK and colIndex >= 6:
@@ -365,7 +379,8 @@ def _renderBottomStatusLine() -> bool:
 
     return False
 
-def _renderItemLine(y: int, item: str, highlighted: bool = False ):
+
+def _renderItemLine(y: int, item: str, highlighted: bool = False):
     """
     """
     _display.fill_rect(0, y, _display.width, TS1_LINE_HEIGHT, highlighted)
@@ -393,6 +408,7 @@ def _renderStatusSelectionBody() -> bool:
 
     return False
 
+
 def _renderSelectExpiryBody() -> bool:
     """
     Render the Expiry Minutes selection screen in the main body
@@ -411,8 +427,8 @@ def _renderSelectExpiryBody() -> bool:
 
             _renderItemLine(TS1_LINE0, status)
             _renderItemLine(TS1_LINE1, f"  Expire in {expiry}", True)
-            _renderItemLine(TS1_LINE2,  "   Minutes")
-            _renderItemLine(TS1_LINE3,  "")
+            _renderItemLine(TS1_LINE2, "   Minutes")
+            _renderItemLine(TS1_LINE3, "")
 
             _isBodyDirty = False
             return True
@@ -437,7 +453,7 @@ def _renderWifiInfoBody() -> bool:
             rssi = 0
             try:
                 rssi = wifi.status('rssi')
-            except:
+            except:  # noqa: E722
                 pass
 
             _renderItemLine(TS1_LINE0, ssid, False)
@@ -451,17 +467,68 @@ def _renderWifiInfoBody() -> bool:
     return False
 
 
+def _renderScreenSaver():
+    """
+    Render the screen saver
+    """
+    global _sSaverX
+    global _sSaverY
+    global _sSaverXDir
+    global _sSaverYDir
+
+    if _topStatusStatus is not None and _topStatusStatus != "":
+        line = f"{_topStatusStatus}"
+    else:
+        line = _topStatusName
+
+    lineLength = len(line) * TS1_FONT_WIDTH
+    xMax = _display.width - lineLength
+    yMax = _display.height - TS1_FONT_HEIGHT
+
+    _sSaverX += _sSaverXDir
+    _sSaverY += _sSaverYDir
+
+    # Left
+    if _sSaverX <= 0:
+        _sSaverXDir = random.randint(0, SCREEN_SAVER_DIR_MAX)
+        _sSaverYDir = random.randint(-SCREEN_SAVER_DIR_MAX, SCREEN_SAVER_DIR_MAX)
+
+    # Right
+    if _sSaverX >= xMax:
+        _sSaverXDir = random.randint(-SCREEN_SAVER_DIR_MAX, 0)
+        _sSaverYDir = random.randint(-SCREEN_SAVER_DIR_MAX, SCREEN_SAVER_DIR_MAX)
+
+    # Top
+    if _sSaverY <= 0:
+        _sSaverYDir = random.randint(0, SCREEN_SAVER_DIR_MAX)
+        _sSaverXDir = random.randint(-SCREEN_SAVER_DIR_MAX, SCREEN_SAVER_DIR_MAX)
+
+    # Bottom
+    if _sSaverY >= yMax:
+        _sSaverYDir = random.randint(-SCREEN_SAVER_DIR_MAX, 0)
+        _sSaverXDir = random.randint(-SCREEN_SAVER_DIR_MAX, SCREEN_SAVER_DIR_MAX)
+
+    _sSaverX = min(xMax, _sSaverX)
+    _sSaverX = max(0, _sSaverX)
+    _sSaverY = min(yMax, _sSaverY)
+    _sSaverY = max(0, _sSaverY)
+
+    _display.fill(0)
+    _display.text(line, _sSaverX, _sSaverY)
+    _display.show()
+
+
 def _renderMainScreen():
     """
     """
     show = _renderTopStatusLine()
     show = _renderStatusSelectionBody() or show
     show = _renderSelectExpiryBody() or show
-    show =_renderWifiInfoBody() or show
+    show = _renderWifiInfoBody() or show
     show = _renderBottomStatusLine() or show
 
     if show:
-       _display.show()
+        _display.show()
 
 
 def _scrollStatusListDown():
@@ -479,6 +546,7 @@ def _scrollStatusListUp():
     _topStatusToRenderIndex -= 1
     _topStatusToRenderIndex = max(_topStatusToRenderIndex, 0)
 
+
 def setOnSendSlackStatusCallback(func):
     """
     The status subsystem callback to send a new status to
@@ -493,7 +561,7 @@ async def loop():
     """
     global _isBodyDirty
     global _lastInputMillis
-    global _isScreenOn
+    global _displayMode
 
     screenSleepLogMs = 0
 
@@ -502,21 +570,20 @@ async def loop():
         now = time.ticks_ms()
 
         # Screen Sleep or not
-        if _lastInputMillis + SCREEN_OFF_INTERVAL_MS < now:
-            if _isScreenOn != False:
-                log.info(__name__, "Screen Sleep")
-            _isScreenOn = False
-            _display.sleep(True)
-            await uasyncio.sleep_ms(250)
+        if _lastInputMillis + SCREEN_SAVER_INTERVAL_MS < now:
+            if _displayMode != DISPLAY_MODE_SCREEN_SAVER:
+                log.info(__name__, "Start Screen Saver")
+                _displayMode = DISPLAY_MODE_SCREEN_SAVER
+            _renderScreenSaver()
+            await uasyncio.sleep_ms(100)
         else:
-            if _isScreenOn != True:
+            if _displayMode == DISPLAY_MODE_SCREEN_SAVER:
                 log.info(__name__, "Screen Wake")
-            _isScreenOn = True
-            _display.sleep(False)
+                _displayMode = DISPLAY_MODE_MAIN
             _renderMainScreen()
             await uasyncio.sleep_ms(10)
 
             if screenSleepLogMs < now:
                 screenSleepLogMs = now + 1000 * 60 * 5
-                m = int((_lastInputMillis + SCREEN_OFF_INTERVAL_MS - now) / 1000 / 60)
+                m = int((_lastInputMillis + SCREEN_SAVER_INTERVAL_MS - now) / 1000 / 60)
                 log.debug(__name__, f"Screen Sleep in [{m}] minutes")
