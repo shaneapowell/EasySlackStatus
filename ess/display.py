@@ -476,10 +476,12 @@ def _renderScreenSaver():
     global _sSaverXDir
     global _sSaverYDir
 
+    # Lets hold the screen saver line to no more than 12 chars
     if _topStatusStatus is not None and _topStatusStatus != "":
-        line = f"{_topStatusStatus}"
+        line = _topStatusStatus
     else:
         line = _topStatusName
+    line = line[:12]
 
     lineLength = len(line) * TS1_FONT_WIDTH
     xMax = _display.width - lineLength
